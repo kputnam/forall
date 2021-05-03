@@ -37,11 +37,12 @@ class Forall
 
         if defined?(RSpec::Expectations)
           case result
+          when Forall::Ok
           when Forall::Vacuous
             message = "gave up (after %d test%s and %d discarded)\nSeed: %d" %
-              [result.counter.examples,
-               result.counter.examples == 1 ? "" : "s",
-               result.counter.discards,
+              [result.counter.test,
+               result.counter.test == 1 ? "" : "s",
+               result.counter.skip,
                result.seed]
 
             error   = ::RSpec::Expectations::ExpectationNotMetError.new(message)
@@ -50,40 +51,37 @@ class Forall
             error.set_backtrace(source)
             raise ::RSpec::Expectations::ExpectationNotMetError, message
 
-          when Forall::Fail
-            message =
-              if result.error.nil?
-                "falsified (after %d test%s%s):\nInput: %s\nSeed: %d" %
-                  [result.counter.examples,
-                   result.counter.examples == 1 ? "" : "s",
-                   (result.counter.shrinks == 1 ? "and 1 shrink" :
-                    result.counter.shrinks == 0 ? "" : "and #{result.counter.shrinks} shrinks"),
-                   result.example.inspect,
-                   result.seed]
-              else
-                template =
-                  case result.error
-                  when RSpec::Expectations::ExpectationNotMetError
-                    "%s (after %d test%s%s):\nInput: %s\nSeed: %d"
-                  else
-                    "exception %s (after %d test%s%s):\nInput: %s\nSeed: %d"
-                  end
+          else
+            if Forall::No === result or RSpec::Expectations::ExpectationNotMetError === result.error
+              message = "falsified (after %d test%s%s):\nInput: %s\nSeed:  %d" %
+                [result.counter.ok,
+                 result.counter.ok == 1 ? "" : "s",
+                 (result.counter.shrunk.steps == 1 ? "and 1 shrink" :
+                  result.counter.shrunk.steps == 0 ? "" : "and #{result.counter.shrinks} shrinks"),
+                 result.counterexample.inspect,
+                 result.seed]
 
-                template %
-                  [result.error,
-                   result.counter.examples,
-                   result.counter.examples == 1 ? "" : "s",
-                   (result.counter.shrinks == 1 ? "and 1 shrink" :
-                    result.counter.shrinks == 0 ? "" : "and #{result.counter.shrinks} shrinks"),
-                   result.example.inspect,
-                   result.seed]
-              end
+              error   = ::RSpec::Expectations::ExpectationNotMetError.new(message)
+              source  = property.binding.source_location.join(":")
+              source << " in `block in ...'"
+              error.set_backtrace(source)
+              raise error
+            else
+              message = "exception %s (after %d test%s%s):\nInput: %s\nSeed: %d" %
+                [result.error,
+                 result.counter.ok,
+                 result.counter.ok == 1 ? "" : "s",
+                 (result.counter.shrunk.steps == 1 ? "and 1 shrink" :
+                  result.counter.shrunk.steps == 0 ? "" : "and #{result.counter.shrinks} shrinks"),
+                 result.counterexample.inspect,
+                 result.seed]
 
-            error   = ::RSpec::Expectations::ExpectationNotMetError.new(message)
-            source  = property.binding.source_location.join(":")
-            source << " in `block in ...'"
-            error.set_backtrace(source)
-            raise error
+              error   = ::RSpec::Expectations::ExpectationNotMetError.new(message)
+              source  = property.binding.source_location.join(":")
+              source << " in `block in ...'"
+              error.set_backtrace(source)
+              raise error
+            end
           end
         else
           result

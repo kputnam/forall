@@ -1,5 +1,7 @@
 require "rspec/core/rake_task"
 
+task :default => :spec
+
 # rake spec
 RSpec::Core::RakeTask.new do |t|
   t.verbose    = false

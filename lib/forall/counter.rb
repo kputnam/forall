@@ -2,7 +2,7 @@
 
 class Forall
   class Counter
-    attr_accessor :ok, :no, :skip, :fail, :shrunk_depth
+    attr_accessor :ok, :no, :skip, :fail, :steps
 
     attr_reader :shrunk, :labels
 
@@ -11,6 +11,7 @@ class Forall
       @no      = 0
       @skip    = 0
       @fail    = 0
+      @steps   = 0
       @shrunk  = Counter.new(false) if top
       @labels  = Hash.new{|h,k| h[k] = 0 }
       @private = nil
@@ -18,6 +19,10 @@ class Forall
 
     def total
       @ok + @no + @skip + @fail
+    end
+
+    def test
+      @ok + @no + @fail
     end
 
     def skip!

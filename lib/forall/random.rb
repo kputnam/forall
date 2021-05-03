@@ -20,36 +20,56 @@ class Forall
     #
     # @param range [Range<Integer>]
     # @return [Integer]
-    def integer(range = 0..2**64-1)
-      @prng.rand(range)
+    def integer(range = nil)
+      min = range&.min || -2**64-1
+      max = range&.max ||  2**64+1
+      @prng.rand(min..max)
     end
 
     # Returns a randomly chosen floating point number
     #
     # @paoram range [Range<Float>]
     # @return [Float]
-    def float(range = 0..Float::MAX)
-      @prng.rand(range)
+    def float(range = nil)
+      min = range&.min || Float::MIN
+      max = range&.max || Float::MAX
+      @prng.rand(min..max)
     end
 
-    # @return [String]
-    def string
-      # TODO
-    end
-
+    # Returns a randomly chosen Date within the given bounds
+    #
+    # @param range [Range<Date>]
     # @return [Date]
-    def date
-      # TODO
+    def date(range = nil)
+      min = (range&.min || Date.civil(0000, 1, 1)).to_time
+      max = (range&.max || Date.civil(9999,12,31)).to_time + 86399
+      Time.at(float(min.to_f .. max.to_f)).to_date
     end
 
+    # Returns a randomly chosen Time within the given bounds
+    #
+    # @param range [Range<Time>]
     # @return [Time]
-    def time
-      # TODO
+    def time(range = nil, utc: nil)
+      min = range&.min || Time.utc(0000,1,1,0,0,0)
+      max = range&.max || Time.utc(9999,12,31,23,59,59)
+      rnd = float(min.to_f .. max.to_f)
+
+      if utc or (utc.nil? and (min.utc? or max.utc?))
+        Time.at(rnd).utc
+      else
+        Time.at(rnd)
+      end
     end
 
+    # Returns a randomly chosen DateTime within the given bounds
+    #
+    # @param range [Range<DateTime>]
     # @return [DateTime]
-    def datetime
-      # TODO
+    def datetime(range = nil)
+      min = range&.min&.to_time
+      max = range&.max&.to_time
+      time(min..max).to_datetime
     end
 
     # Returns a randomly chosen range within the given bounds
@@ -57,7 +77,7 @@ class Forall
     # @param range [Range<Object>]
     # @param width [Integer]
     # @return [Range]
-    def range(range = nil, width: nil)
+    def range(range, width: nil)
       min = range.min
       max = range.max
 
@@ -69,6 +89,15 @@ class Forall
         when Integer
           a = integer(range)
           b = integer(range)
+        when Time
+          a = time(range)
+          b = time(range)
+        when Date
+          a = date(range)
+          b = date(range)
+        when DateTime
+          a = datetime(range)
+          b = datetime(range)
         else
           a, b = choose(range, count: 2)
         end
@@ -117,11 +146,11 @@ class Forall
         items.sample(self, count: count)
       when Range
         method =
-          if                           Integer  === items.min then :integer
-          elsif                        Float    === items.min then :float
-          elsif                        Time     === items.min then :time
-          elsif defined?(Date)     and Date     === items.min then :date
-          elsif defined?(DateTime) and DateTime === items.min then :datetime
+          if                           Integer  === (items.min || items.max) then :integer
+          elsif                        Float    === (items.min || items.max) then :float
+          elsif                        Time     === (items.min || items.max) then :time
+          elsif defined?(Date)     and Date     === (items.min || items.max) then :date
+          elsif defined?(DateTime) and DateTime === (items.min || items.max) then :datetime
           else
             # NOTE: This is memory inefficient
             items = items.to_a

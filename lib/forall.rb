@@ -134,41 +134,28 @@ class Forall
       # and reserve the budget for exploring the tree more deeply.
 
       fitness  = 0
-      queue    = [C.new(shrunk, fitness, 0, 0)]
+      queue    = _weight(shrink.call(shrunk), 0, 1)
       _counter = counter.shrunk
 
-      until queue.empty?
-        # Expand parent by enumerating its children
-        p  = queue.shift
-        cs = weight(shrink.call(p.value), p.fitness+0.5, p.fitness+1)
+      until queue.empty? or _counter.total >= options.max_shrink
+        c = queue.shift
 
-        ok = 0.0
-        no = []
-
-        cs.each do |c, n|
-          break if _counter.total >= options.max_shrink
-
-          catch(:skip) do
-            if prop.call(c, _counter)
-              _counter.ok += 1
-              ok          += 1
-            else
-              _counter.no += 1
-              no.push([c, n])
+        catch(:skip) do
+          if prop.call(c.value, _counter)
+            _counter.ok += 1
+          else
+            if c.fitness > fitness
+              fitness = c.fitness
+              shrunk  = c.value
             end
+
+            _counter.no += 1
+            queue.concat(_weight(shrink.call(c.value), c.fitness+0.5, c.fitness+1.0))
+            queue.sort_by!{|x| -x.fitness }
           end
-        end
-
-        no.map!{|c,n| C.new(c, n, 1-ok/cs.size) }
-
-        unless no.empty?
-          if no.first.fitness > fitness
-            fitness = no.first.fitness
-            shrunk  = no.first.value
-          end
-
-          queue.concat(no)
-          queue.sort_by{|c| -c.fitness }
+        rescue => e
+          _counter.fail += 1
+          raise e
         end
       end
 
@@ -193,6 +180,8 @@ class Forall
             _counter.no += 1
           end
         rescue => e
+          # TODO: Do we care if this exception is different from `error`?
+
           if c.fitness > fitness
             fitness = c.fitness
             shrunk  = c.value
@@ -204,7 +193,7 @@ class Forall
         end
       end
 
-      return Fail.new(random.seed, counter, shrunk, error)
+      Fail.new(random.seed, counter, shrunk, error)
     end
   end
 

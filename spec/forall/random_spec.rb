@@ -21,7 +21,7 @@ describe Forall::Random do
   end
 
   describe "#integer" do
-    it "hos no required arguments" do
+    it "has no required arguments" do
       forall(sampled{|_| }).check{|_| expect(@rnd.integer).to be_a(Integer) }
     end
 
@@ -69,25 +69,87 @@ describe Forall::Random do
       expect(@rnd.float(10.0..99.9)).to eq(77.66715571073766 )
       expect(@rnd.float(10.0..99.9)).to eq(89.46073832691911 )
       expect(@rnd.float(10.0..99.9)).to eq(23.925427336927644)
-      expect(@rnd.float(10.0..99.9)).to eq(70.28212456300024 )
-      expect(@rnd.float(10.0..99.9)).to eq(67.84571999512615 )
     end
   end
 
-  todo "#string"
+  describe "#date" do
+    before do
+      require "date"
+      @a = Date.civil(1000,1,1)
+      @b = Date.civil(3000,12,31)
+    end
 
-  todo "#date"
+    it "has no required arguments" do
+      forall(sampled{|_| }).check{|_| @rnd.date.is_a?(Date) }
+    end
 
-  todo "#time"
+    it "returns a value within the given range" do
+      forall(sampled{|rnd| rnd.range(@a..@b) }).check do |range|
+        @rnd.date(range).then do |x|
+          expect(x).to be_a(Date)
+          expect(x).to be_between(range.min, range.max)
+        end
+      end
+    end
+
+    it "uses the given random seed" do
+      expect(@rnd.date(@a..@b)).to eq(Date.civil(2066,  3, 16))
+      expect(@rnd.date(@a..@b)).to eq(Date.civil(2068, 10, 24))
+      expect(@rnd.date(@a..@b)).to eq(Date.civil(2019,  8, 16))
+      expect(@rnd.date(@a..@b)).to eq(Date.civil(2427, 11, 05))
+      expect(@rnd.date(@a..@b)).to eq(Date.civil(1514,  3, 29))
+      expect(@rnd.date(@a..@b)).to eq(Date.civil(2506,  2, 22))
+      expect(@rnd.date(@a..@b)).to eq(Date.civil(2768,  8, 23))
+      expect(@rnd.date(@a..@b)).to eq(Date.civil(1309, 12, 11))
+    end
+  end
+
+  describe "#time" do
+    before do
+      @a = Time.at(-10000000000)
+      @b = Time.at( 99999999999)
+    end
+
+    it "has no required arguments" do
+      forall(sampled{|_| }).check{|_| @rnd.time.is_a?(Time) }
+    end
+
+    it "returns a value wwithin the given range" do
+      forall(sampled{|rnd| rnd.range(@a..@b) }).check do |range|
+        @rnd.time(range).then do |x|
+          expect(x).to be_a(Time)
+          expect(x).to be_between(range.min, range.max)
+        end
+      end
+    end
+
+    it "uses the given random seed" do
+      expect(@rnd.time(@a..@b)).to eq(Time.at(48611632554.48521))
+      expect(@rnd.time(@a..@b)).to eq(Time.at(48755026547.97232))
+      expect(@rnd.time(@a..@b)).to eq(Time.at(46050833998.58249))
+      expect(@rnd.time(@a..@b)).to eq(Time.at(68492043700.953415))
+      expect(@rnd.time(@a..@b)).to eq(Time.at(18269885049.094524))
+      expect(@rnd.time(@a..@b)).to eq(Time.at(72796297309.38237))
+      expect(@rnd.time(@a..@b)).to eq(Time.at(87226709854.07832))
+      expect(@rnd.time(@a..@b)).to eq(Time.at(7038898854.817745))
+    end
+  end
 
   todo "#datetime"
 
   describe "#range" do
     context "of integers" do
+      before do
+        @a = -100
+        @b =  100
+      end
+
       it "returns a range within the given range" do
-        forall(sampled{|rnd| rnd.range(-100..100)}).check do |range|
+        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
+          expect(@a..@b).to be_cover(range)
+
           @rnd.range(range).then do |x|
-            expect(x).to be_a(Range)
+            expect(x).to     be_a(Range)
             expect(x.min).to be_a(Integer)
             expect(x.max).to be_a(Integer)
             expect(range).to be_cover(x)
@@ -96,22 +158,29 @@ describe Forall::Random do
       end
 
       it "uses the given random seed" do
-        expect(@rnd.range(-100..100)).to eq(56..84  )
-        expect(@rnd.range(-100..100)).to eq(-50..-10)
-        expect(@rnd.range(-100..100)).to eq(-93..-71)
-        expect(@rnd.range(-100..100)).to eq(-21..88 )
-        expect(@rnd.range(-100..100)).to eq(-16..-1 )
-        expect(@rnd.range(-100..100)).to eq(11..16  )
-        expect(@rnd.range(-100..100)).to eq(-18..23 )
-        expect(@rnd.range(-100..100)).to eq(7..8    )
+        expect(@rnd.range(@a..@b)).to eq(56..84  )
+        expect(@rnd.range(@a..@b)).to eq(-50..-10)
+        expect(@rnd.range(@a..@b)).to eq(-93..-71)
+        expect(@rnd.range(@a..@b)).to eq(-21..88 )
+        expect(@rnd.range(@a..@b)).to eq(-16..-1 )
+        expect(@rnd.range(@a..@b)).to eq(11..16  )
+        expect(@rnd.range(@a..@b)).to eq(-18..23 )
+        expect(@rnd.range(@a..@b)).to eq(7..8    )
       end
     end
 
     context "of floats" do
+      before do
+        @a = -100.0
+        @b =  100.0
+      end
+
       it "returns a range within the given range" do
-        forall(sampled{|rnd| rnd.range(-100.0..100.0)}).check do |range|
+        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
+          expect(@a..@b).to be_cover(range)
+
           @rnd.range(range).then do |x|
-            expect(x).to be_a(Range)
+            expect(x).to     be_a(Range)
             expect(x.min).to be_a(Float)
             expect(x.max).to be_a(Float)
             expect(range).to be_cover(x)
@@ -120,22 +189,28 @@ describe Forall::Random do
       end
 
       it "uses the given random seed" do
-        expect(@rnd.range(-100.0..100.0)).to eq(6.566604645487345..6.827320997284474  )
-        expect(@rnd.range(-100.0..100.0)).to eq(1.9106072710764295..42.71280673030361 )
-        expect(@rnd.range(-100.0..100.0)).to eq(-48.60020900117905..50.53872238206375 )
-        expect(@rnd.range(-100.0..100.0)).to eq(-69.02018390004974..76.77583609993127 )
-        expect(@rnd.range(-100.0..100.0)).to eq(28.68903224722169..34.109287125695744 )
-        expect(@rnd.range(-100.0..100.0)).to eq(44.725433856529065..49.745040910752124)
-        expect(@rnd.range(-100.0..100.0)).to eq(-80.41829562321206..63.70947866752053 )
-        expect(@rnd.range(-100.0..100.0)).to eq(-99.28921818030085..-53.83807606108226)
+        expect(@rnd.range(@a..@b)).to eq(6.566604645487345..6.827320997284474  )
+        expect(@rnd.range(@a..@b)).to eq(1.9106072710764295..42.71280673030361 )
+        expect(@rnd.range(@a..@b)).to eq(-48.60020900117905..50.53872238206375 )
+        expect(@rnd.range(@a..@b)).to eq(-69.02018390004974..76.77583609993127 )
+        expect(@rnd.range(@a..@b)).to eq(28.68903224722169..34.109287125695744 )
+        expect(@rnd.range(@a..@b)).to eq(44.725433856529065..49.745040910752124)
+        expect(@rnd.range(@a..@b)).to eq(-80.41829562321206..63.70947866752053 )
+        expect(@rnd.range(@a..@b)).to eq(-99.28921818030085..-53.83807606108226)
       end
     end
 
     context "of characters" do
+      before do
+        @a = "a"
+        @b = "z"
+      end
       it "returns a range within the given range" do
-        forall(sampled{|rnd| rnd.range("a".."z")}).check do |range|
+        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
+          expect(@a..@b).to be_cover(range)
+
           @rnd.range(range).then do |x|
-            expect(x).to be_a(Range)
+            expect(x).to     be_a(Range)
             expect(x.min).to be_a(String)
             expect(x.max).to be_a(String)
             expect(range).to be_cover(x)
@@ -144,16 +219,80 @@ describe Forall::Random do
       end
 
       it "uses the given random seed" do
-        expect(@rnd.range("a".."z")).to eq("s".."y")
-        expect(@rnd.range("a".."z")).to eq("m".."z")
-        expect(@rnd.range("a".."z")).to eq("e".."h")
-        expect(@rnd.range("a".."z")).to eq("p".."t")
-        expect(@rnd.range("a".."z")).to eq("n".."u")
-        expect(@rnd.range("a".."z")).to eq("a".."d")
-        expect(@rnd.range("a".."z")).to eq("p".."u")
-        expect(@rnd.range("a".."z")).to eq("o".."s")
+        expect(@rnd.range(@a..@b)).to eq("s".."y")
+        expect(@rnd.range(@a..@b)).to eq("m".."z")
+        expect(@rnd.range(@a..@b)).to eq("e".."h")
+        expect(@rnd.range(@a..@b)).to eq("p".."t")
+        expect(@rnd.range(@a..@b)).to eq("n".."u")
+        expect(@rnd.range(@a..@b)).to eq("a".."d")
+        expect(@rnd.range(@a..@b)).to eq("p".."u")
+        expect(@rnd.range(@a..@b)).to eq("o".."s")
       end
     end
+
+    context "of dates" do
+      before do
+        @a = Date.civil(1200, 1, 1)
+        @b = Date.civil(2500, 1, 1)
+      end
+
+      it "returns a range within the given range" do
+        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
+          expect(@a..@b).to be_cover(range)
+
+          @rnd.range(range).then do |x|
+            expect(x).to     be_a(Range)
+            expect(x.min).to be_a(Date)
+            expect(x.max).to be_a(Date)
+            expect(range).to be_cover(x)
+          end
+        end
+      end
+
+      it "uses the given random seed" do
+        expect(@rnd.range(@a..@b)).to eq(Date.civil(1892, 9,10)..Date.civil(1894, 5,22))
+        expect(@rnd.range(@a..@b)).to eq(Date.civil(1862, 6, 6)..Date.civil(2127, 8,23))
+        expect(@rnd.range(@a..@b)).to eq(Date.civil(1534, 2, 1)..Date.civil(2178, 7, 5))
+        expect(@rnd.range(@a..@b)).to eq(Date.civil(1401, 5,12)..Date.civil(2349, 1,18))
+        expect(@rnd.range(@a..@b)).to eq(Date.civil(2036, 6,27)..Date.civil(2071, 9,20))
+        expect(@rnd.range(@a..@b)).to eq(Date.civil(2140, 9,21)..Date.civil(2173, 5, 8))
+        expect(@rnd.range(@a..@b)).to eq(Date.civil(1327, 4,11)..Date.civil(2264, 2,13))
+        expect(@rnd.range(@a..@b)).to eq(Date.civil(1204, 8,14)..Date.civil(1500, 1,16))
+      end
+    end
+
+    context "of times" do
+      before do
+        @a = Time.at(-10000000000)
+        @b = Time.at( 99999999999)
+      end
+
+      it "returns a range within the given range" do
+        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
+          expect(@a..@b).to be_cover(range)
+
+          @rnd.range(range).then do |x|
+            expect(x).to     be_a(Range)
+            expect(x.min).to be_a(Time)
+            expect(x.max).to be_a(Time)
+            expect(range).to be_cover(x)
+          end
+        end
+      end
+
+      it "uses the given random seed" do
+        expect(@rnd.range(@a..@b)).to eq(Time.at( 48611632554.48521 )..Time.at(48755026547.97232))
+        expect(@rnd.range(@a..@b)).to eq(Time.at( 46050833998.58249 )..Time.at(68492043700.953415))
+        expect(@rnd.range(@a..@b)).to eq(Time.at( 18269885049.094524)..Time.at(72796297309.38237))
+        expect(@rnd.range(@a..@b)).to eq(Time.at( 7038898854.817745 )..Time.at(87226709854.07832))
+        expect(@rnd.range(@a..@b)).to eq(Time.at( 60778967735.328476)..Time.at(63760107918.46211))
+        expect(@rnd.range(@a..@b)).to eq(Time.at( 69598988620.36737 )..Time.at(72359772500.16493))
+        expect(@rnd.range(@a..@b)).to eq(Time.at( 769937407.1354618 )..Time.at(80040213266.31773))
+        expect(@rnd.range(@a..@b)).to eq(Time.at(-9609069999.169024 )..Time.at(15389058166.173946))
+      end
+    end
+
+    todo "of datetimes"
   end
 
   describe "#sample" do
@@ -225,14 +364,11 @@ describe Forall::Random do
     end
 
     context "with a count: argument" do
-      context "on sampled{...}" do
-      end
+      todo "on sampled{...}"
 
-      context "on a range" do
-      end
+      todo "on a range"
 
-      context "on an array" do
-      end
+      todo "on an array"
 
       todo "on a non-enumerable value"
     end
@@ -249,27 +385,26 @@ describe Forall::Random do
   end
 
   describe "#array" do
-    context "with unspecified size" do
-    end
+    todo "with unspecified size"
 
-    context "with fixed size" do
-    end
+    todo "with fixed size"
 
-    context "with size range" do
-    end
+    todo "with size range"
   end
 
   describe "#hash" do
-    context "with unspecified size" do
-    end
+    todo "with unspecified size"
 
-    context "with fixed size" do
-    end
+    todo "with fixed size"
 
-    context "with size range" do
-    end
+    todo "with size range"
   end
 
   describe "#set" do
+    todo "with unspecified size"
+
+    todo "with fixed size"
+
+    todo "with size range"
   end
 end
