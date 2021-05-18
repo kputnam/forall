@@ -1,0 +1,21 @@
+inherit_from:
+  - ../.rubocop.yml
+
+Metrics/BlockLength:
+  Enabled: false
+
+Layout/SpaceAfterComma:
+  Exclude:
+    - forall/random_spec.rb
+
+Layout/ExtraSpacing:
+  Exclude:
+    - forall/random_spec.rb
+
+Layout/SpaceInsideParens:
+  Exclude:
+    - forall/random_spec.rb
+
+Style/NumericLiteralPrefix:
+  Exclude:
+    - forall/random_spec.rb

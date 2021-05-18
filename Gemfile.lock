@@ -55,6 +55,11 @@ GEM
       unicode-display_width (>= 1.4.0, < 3.0)
     rubocop-ast (1.4.1)
       parser (>= 2.7.1.5)
+    rubocop-rake (0.5.1)
+      rubocop
+    rubocop-rspec (2.3.0)
+      rubocop (~> 1.0)
+      rubocop-ast (>= 1.1.0)
     ruby-progressbar (1.11.0)
     simplecov (0.21.2)
       docile (~> 1.1)
@@ -89,6 +94,9 @@ DEPENDENCIES
   irb
   rake
   rspec
+  rubocop
+  rubocop-rake
+  rubocop-rspec
   simplecov
   simplecov-inline-html
   solargraph
