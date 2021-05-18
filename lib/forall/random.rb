@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class Forall
+  # Generates pseudorandom values
   class Random
     def initialize(seed: nil)
       @prng = ::Random.new(seed || ::Random.new_seed)
@@ -41,9 +42,11 @@ class Forall
     # @param range [Range<Date>]
     # @return [Date]
     def date(range = nil)
-      min = (range&.min || Date.civil(0000, 1, 1)).to_time
-      max = (range&.max || Date.civil(9999,12,31)).to_time + 86399
-      Time.at(float(min.to_f .. max.to_f)).to_date
+      # rubocop:disable Style/NumericLiteralPrefix, Layout/ExtraSpacing
+      min = (range&.min || Date.civil(0000,  1,  1)).to_time
+      max = (range&.max || Date.civil(9999, 12, 31)).to_time + 86399
+      # rubocop:enable Style/NumericLiteralPrefix, Layout/ExtraSpacing
+      Time.at(float(min.to_f..max.to_f)).to_date
     end
 
     # Returns a randomly chosen Time within the given bounds
@@ -51,9 +54,11 @@ class Forall
     # @param range [Range<Time>]
     # @return [Time]
     def time(range = nil, utc: nil)
-      min = range&.min || Time.utc(0000,1,1,0,0,0)
-      max = range&.max || Time.utc(9999,12,31,23,59,59)
-      rnd = float(min.to_f .. max.to_f)
+      # rubocop:disable Style/NumericLiteralPrefix, Layout/ExtraSpacing
+      min = range&.min || Time.utc(0000,  1,  1,  0,  0,  0)
+      max = range&.max || Time.utc(9999, 12, 31, 23, 59, 59)
+      # rubocop:enable Style/NumericLiteralPrefix, Layout/ExtraSpacing
+      rnd = float(min.to_f..max.to_f)
 
       if utc or (utc.nil? and (min.utc? or max.utc?))
         Time.at(rnd).utc
@@ -111,7 +116,7 @@ class Forall
         end
       else
         # Randomly choose a width within given bounds
-        width = choose(width) if Enumerable === width
+        width = choose(width) if width.is_a?(Enumerable)
 
         case min or max
         when Float
@@ -120,6 +125,12 @@ class Forall
         when Integer
           min = integer(min: min, max: max-width)
           max = min+width-1
+        when Time
+          raise TypeError, "range(time..time, width: ...) not yet supported"
+        when Date
+          raise TypeError, "range(date..date, width: ...) not yet supported"
+        when DateTime
+          raise TypeError, "range(datetime..datetime, width: ...) not yet supported"
         else
           all = (min..max).to_a
           max = all.size-1
@@ -136,30 +147,28 @@ class Forall
       min..max
     end
 
-    # Returns a uniformly random chosen element(s) from the given Enumerable
+    # Returns a uniformly random chosen element(s) from the given Input or Enumerable
     #
     # @param items [Input::Some | Input::All | Range | Array]
-    # @return [Object]
+    # @return [Object | Array<Object>]
     def sample(items, count: nil)
       case items
       when Input
         items.sample(self, count: count)
       when Range
         method =
-          if                           Integer  === (items.min || items.max) then :integer
-          elsif                        Float    === (items.min || items.max) then :float
-          elsif                        Time     === (items.min || items.max) then :time
-          elsif defined?(Date)     and Date     === (items.min || items.max) then :date
-          elsif defined?(DateTime) and DateTime === (items.min || items.max) then :datetime
+          if                           (items.min || items.max).is_a?(Integer)  then :integer
+          elsif                        (items.min || items.max).is_a?(Float)    then :float
+          elsif                        (items.min || items.max).is_a?(Time)     then :time
+          elsif defined?(Date)     and (items.min || items.max).is_a?(Date)     then :date
+          elsif defined?(DateTime) and (items.min || items.max).is_a?(DateTime) then :datetime
           else
             # NOTE: This is memory inefficient
             items = items.to_a
 
-            if count.nil?
-              return items.sample(random: @prng)
-            else
-              return count.times.map{|_| items.sample(random: @prng) }
-            end
+            return count ?
+              count.times.map{|_| items.sample(random: @prng) } :
+              items.sample(random: @prng)
           end
 
         if count.nil?
@@ -168,43 +177,44 @@ class Forall
           count.times.map{|_| send(method, items) }
         end
       else
-        unless items.respond_to?(:sample)
-          # NOTE: This works across many types but is memory inefficient
-          items = items.to_a
-        end
+        # NOTE: This works across many types but is memory inefficient
+        items = items.to_a
 
         if count.nil?
           items.sample(random: @prng)
         else
-          # Sample *with* replacement
-          count.times.map{|_| items.sample(random: @prng) }
+          # The only reason count is a parameter to our sample method is because
+          # arr.sample(count) is more efficient than count.times.map{arr.sample}
+          items.sample(count, random: @prng)
         end
       end
     end
 
-    alias_method :choose, :sample
+    alias choose sample
 
-    # Returns a uniformly random chosen element(s) from the given Enumerable
+    # Returns a uniformly random chosen element(s) from the given Enumerable.
+    # This runs in O(n) time where n is the number of possible items. This is
+    # not dependent on `count`, the number of requested items.
     #
     # @param items [Array<Object>]
     # @param freqs [Array<Numeric>]
     # @param count [Numeric]
-    # @return [Object]
+    # @return [Object | Array<Object>]
     def weighted(items, freqs, count: nil)
-      unless items.size == freqs.size
-        raise ArgumentError, "items and frequencies must have same size"
-      end
+      raise TypeError, "items must be an array" unless items.is_a?(Array)
+      raise TypeError, "freqs must be an array" unless freqs.is_a?(Array)
+      raise ArgumentError, "no items given" unless count&.zero? or !items.empty?
+      raise ArgumentError, "items and frequencies must have same size" \
+        unless items.size == freqs.size
 
-      # This runs in O(n) time where n is the number of possible items. This is
-      # not dependent on `count`, the number of requested items.
       if count.nil?
         sum = freqs[0].to_f
         res = items[0]
 
         (1..items.size - 1).each do |i|
           sum += freqs[i]
-          p = freqs[i] / sum
-          j = @prng.rand
+          p    = freqs[i] / sum
+          j    = @prng.rand
           res = items[i] if j <= p
         end
       else
@@ -213,8 +223,8 @@ class Forall
 
         (count..items.size).each do |i|
           sum += freqs[i]
-          p = count * freqs[i] / sum
-          j = @prng.rand
+          p    = count * freqs[i] / sum
+          j    = @prng.rand
           res[@prng.rand(count)] = items[i] if j <= p
         end
       end
@@ -244,10 +254,12 @@ class Forall
     #   rnd.array(10..50) { integer(0..9) } #=> [8,2,1,1,...]
     #
     # @return Array
-    def array(size: nil)
+    def array(size: nil, &block)
+      raise ArgumentError, "no block given" unless block_given?
+
       size ||= integer(0..64)
-      size = choose(size) if Range === size
-      size.times.map{|n| yield n }
+      size = choose(size) if size.is_a?(Range)
+      size.times.map{|n| block.call(n) }
     end
 
     # Generates a Hash by repeatedly calling a block that returns a random [key,
@@ -257,8 +269,10 @@ class Forall
     # @yieldreturn [Array<K, V>]
     # @return [Hash<K, V>]
     def hash(size: nil)
+      raise ArgumentError, "no block given" unless block_given?
+
       size ||= integer(0..64)
-      size = choose(size) if Range === size
+      size = choose(size) if size.is_a?(Range)
       hash = {}
 
       until hash.size >= size
@@ -270,14 +284,13 @@ class Forall
     end
 
     def set(size: nil)
+      raise ArgumentError, "no block given" unless block_given?
+
       size ||= integer(0..64)
-      size = choose(size) if Range === size
+      size = choose(size) if size.is_a?(Range)
       set  = Set.new
 
-      until set.size == size
-        set << yield(set.size)
-      end
-
+      set << yield(set.size) until set.size == size
       set
     end
   end

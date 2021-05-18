@@ -1,3 +1,11 @@
+# frozen_string_literal: true
+
+require "simplecov"
+SimpleCov.start do
+  enable_coverage :branch
+  add_filter "/spec"
+end
+
 require "forall"
 
 RSpec.configure do |config|
@@ -15,11 +23,11 @@ RSpec.configure do |config|
   config.filter_run_excluding(ruby: lambda do |expected|
     case expected
     when String
-      not RUBY_VERSION.start_with?(expected)
+      !RUBY_VERSION.start_with?(expected)
     when Regexp
       expected !~ RUBY_VERSION
     when Proc
-      not expected.call(RUBY_VERSION)
+      !expected.call(RUBY_VERSION)
     end
   end)
 

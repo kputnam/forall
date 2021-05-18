@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# This class is not meant to be instantiated by the user.
 class Forall
   autoload :Input,    "forall/input"
   autoload :Random,   "forall/random"
@@ -40,8 +41,8 @@ class Forall
       end
 
       if prop.arity == 1
-        _prop = prop
-        prop  = lambda{|x,_| _prop.call(x) }
+        prop_ = prop
+        prop  = lambda{|x, _| prop_.call(x) }
       end
 
       raise ArgumentError, "property must take one or two arguments" \
@@ -54,15 +55,14 @@ class Forall
         return Vacuous.new(random.seed, counter) if counter.skip >= options.max_skip
 
         catch(:skip) do
-          if prop.call(example, counter)
-            counter.ok += 1
-          else
-            return no(random, counter, input.shrink, example, options, prop)
-          end
+          return no(random, counter, input.shrink, example, options, prop) \
+            unless prop.call(example, counter)
+
+          counter.ok += 1
         end
-      rescue Exception => error
+      rescue RuntimeError => e
         counter.fail += 1
-        return fail(random, counter, input.shrink, example, options, prop, error)
+        return fail(random, counter, input.shrink, example, options, prop, e)
       end
 
       # Didn't meet ok_max because input was exhausted
@@ -71,16 +71,10 @@ class Forall
 
   private
 
-    def weight(xs, min, max)
-      n = xs.length.to_f
+    def weight(items, min, max)
+      n = items.length.to_f
       r = max - min
-      xs.map.with_index{|x, k| [x, max-r*k/n] }
-    end
-
-    def _weight(xs, min, max)
-      n = xs.length.to_f
-      r = max - min
-      xs.map.with_index{|x, k| C.new(x, max-r*k/n, 0) }
+      items.map.with_index{|x, k| C.new(x, max - r*k/n, 0) }
     end
 
     C = Struct.new(:value, :fitness, :heuristic, :note)
@@ -134,27 +128,27 @@ class Forall
       # and reserve the budget for exploring the tree more deeply.
 
       fitness  = 0
-      queue    = _weight(shrink.call(shrunk), 0, 1)
-      _counter = counter.shrunk
+      queue    = weight(shrink.call(shrunk), 0, 1)
+      counter_ = counter.shrunk
 
-      until queue.empty? or _counter.total >= options.max_shrink
+      until queue.empty? or counter_.total >= options.max_shrink
         c = queue.shift
 
         catch(:skip) do
-          if prop.call(c.value, _counter)
-            _counter.ok += 1
+          if prop.call(c.value, counter_)
+            counter_.ok += 1
           else
             if c.fitness > fitness
               fitness = c.fitness
               shrunk  = c.value
             end
 
-            _counter.no += 1
-            queue.concat(_weight(shrink.call(c.value), c.fitness+0.5, c.fitness+1.0))
+            counter_.no += 1
+            queue.concat(weight(shrink.call(c.value), c.fitness + 0.5, c.fitness + 1.0))
             queue.sort_by!{|x| -x.fitness }
           end
-        rescue => e
-          _counter.fail += 1
+        rescue RuntimeError => e
+          counter_.fail += 1
           raise e
         end
       end
@@ -167,19 +161,19 @@ class Forall
       return Fail.new(random.seed, counter, shrunk, error) if shrink.nil?
 
       fitness  = 0
-      queue    = _weight(shrink.call(shrunk), 0, 1)
-      _counter = counter.shrunk
+      queue    = weight(shrink.call(shrunk), 0, 1)
+      counter_ = counter.shrunk
 
-      until queue.empty? or _counter.total >= options.max_shrink
+      until queue.empty? or counter_.total >= options.max_shrink
         c = queue.shift
 
         catch(:skip) do
-          if prop.call(c.value, _counter)
-            _counter.ok += 1
+          if prop.call(c.value, counter_)
+            counter_.ok += 1
           else
-            _counter.no += 1
+            counter_.no += 1
           end
-        rescue => e
+        rescue RuntimeError
           # TODO: Do we care if this exception is different from `error`?
 
           if c.fitness > fitness
@@ -187,8 +181,8 @@ class Forall
             shrunk  = c.value
           end
 
-          _counter.fail += 1
-          queue.concat(_weight(shrink.call(c.value), c.fitness+0.5, c.fitness+1.0))
+          counter_.fail += 1
+          queue.concat(weight(shrink.call(c.value), c.fitness + 0.5, c.fitness + 1.0))
           queue.sort_by!{|x| -x.fitness }
         end
       end
@@ -196,5 +190,4 @@ class Forall
       Fail.new(random.seed, counter, shrunk, error)
     end
   end
-
 end

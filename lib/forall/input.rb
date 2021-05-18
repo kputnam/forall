@@ -1,27 +1,37 @@
 # frozen_string_literal: true
 
 class Forall
+  # This class is not meant to be instantiated directly. It represents possible
+  # inputs, either randomly sampled (with replacement) or enumerated fully
   class Input
     class << self
       # @param value [Proc | Enumerable]
       def build(value = nil, &block)
-        if Input === value
-          value
-        elsif Enumerable === value
-          # This includes Range
-          All.new(value)
-        elsif Proc === value
-          Some.new(value)
-        elsif block_given?
+        if block_given?
+          raise ArgumentError, "both argument and block cannot be given" \
+            unless value.nil?
+
           Some.new(block)
         else
-          raise TypeError, "argument must be a Proc or Enumerable"
+          case value
+          when Input
+            value
+          when Enumerable
+            All.new(value)
+          when Proc
+            Some.new(value)
+          when nil
+            raise ArgumentError, "argument or block must be given"
+          else
+            raise TypeError, "argument must be a Forall::Input, Enumerable, or Proc"
+          end
         end
       end
 
       # @param value [Enumerable]
-      def exhaustive(value = nil, &block)
-        if Enumerable === value
+      def exhaustive(value)
+        case value
+        when Enumerable
           All.new(value)
         else
           raise TypeError, "argument must be Enumerable"
@@ -31,10 +41,15 @@ class Forall
       # @param value [Proc | Array | Enumerator | ... | Enumerable]
       def sampled(value = nil, &block)
         if block_given?
+          raise ArgumentError, "both argument and block cannot be given" \
+            unless value.nil?
+
           Some.new(block)
-        elsif Proc === value
+        elsif value.nil?
+          raise ArgumentError, "argument or block must be given"
+        elsif value.is_a?(Proc)
           Some.new(value)
-        elsif Range === value or value.respond_to?(:sample)
+        elsif value.is_a?(Range) or value.respond_to?(:sample)
           Some.new(lambda{|rnd| rnd.sample(value) })
         elsif value.respond_to?(:to_a)
           array = value.to_a
@@ -45,7 +60,7 @@ class Forall
       end
     end
 
-    def shrink(value = nil, &block)
+    def shrink(&block)
       if block_given?
         @shrink = block
         self
@@ -69,8 +84,8 @@ class Forall
         random.sample(@items, count: count)
       end
 
-      def each(random, *args)
-        @items.each{|input| yield input }
+      def each(_random, &block)
+        @items.each{|input| block.call(input) }
       end
 
       def size
@@ -93,14 +108,12 @@ class Forall
         if count.nil?
           @block.call(random)
         else
-          count.times.map { @block.call(random) }
+          count.times.map{ @block.call(random) }
         end
       end
 
       def each(random, *args)
-        while true
-          yield @block.call(random, *args)
-        end
+        yield @block.call(random, *args) while true
       end
     end
   end

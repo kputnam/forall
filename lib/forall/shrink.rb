@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Forall
   class Shrink
     def boolean(x)

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 describe Forall::Random do
   before do
     @rnd = Forall::Random.new(seed: 123456789)
@@ -5,7 +7,7 @@ describe Forall::Random do
 
   describe "#boolean" do
     it "returns true or false" do
-      forall(sampled{|_| }).check{|_| [true, false].include?(@rnd.boolean) }
+      forall(sampled{|_| nil }).check{|_| [true, false].include?(@rnd.boolean) }
     end
 
     it "uses the given random seed" do
@@ -26,7 +28,7 @@ describe Forall::Random do
     end
 
     it "returns a value within given range" do
-      forall(sampled{|rnd| rnd.range(-100..100)}).check do |range|
+      forall(sampled{|rnd| rnd.range(-100..100) }).check do |range|
         @rnd.integer(range).then do |x|
           expect(x).to     be_a(Integer)
           expect(range).to include(x)
@@ -52,7 +54,7 @@ describe Forall::Random do
     end
 
     it "returns a value within the given range" do
-      forall(sampled{|rnd| rnd.range(-100.0..100.0)}).check do |range|
+      forall(sampled{|rnd| rnd.range(-100.0..100.0) }).check do |range|
         @rnd.float(range).then do |x|
           expect(x).to     be_a(Float)
           expect(range).to include(x)
@@ -63,11 +65,11 @@ describe Forall::Random do
     it "uses the given random seed" do
       expect(@rnd.float(10.0..99.9)).to eq(57.901688788146565)
       expect(@rnd.float(10.0..99.9)).to eq(58.018880788279375)
-      expect(@rnd.float(10.0..99.9)).to eq(55.80881796834886 )
-      expect(@rnd.float(10.0..99.9)).to eq(74.14940662527147 )
-      expect(@rnd.float(10.0..99.9)).to eq(33.10420605397002 )
-      expect(@rnd.float(10.0..99.9)).to eq(77.66715571073766 )
-      expect(@rnd.float(10.0..99.9)).to eq(89.46073832691911 )
+      expect(@rnd.float(10.0..99.9)).to eq(55.80881796834886)
+      expect(@rnd.float(10.0..99.9)).to eq(74.14940662527147)
+      expect(@rnd.float(10.0..99.9)).to eq(33.10420605397002)
+      expect(@rnd.float(10.0..99.9)).to eq(77.66715571073766)
+      expect(@rnd.float(10.0..99.9)).to eq(89.46073832691911)
       expect(@rnd.float(10.0..99.9)).to eq(23.925427336927644)
     end
   end
@@ -144,29 +146,33 @@ describe Forall::Random do
         @b =  100
       end
 
-      it "returns a range within the given range" do
-        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
-          expect(@a..@b).to be_cover(range)
+      context "when width is not given" do
+        it "returns a range within the given range" do
+          forall(sampled{|rnd| rnd.range(@a..@b) }).check do |range|
+            expect(@a..@b).to be_cover(range)
 
-          @rnd.range(range).then do |x|
-            expect(x).to     be_a(Range)
-            expect(x.min).to be_a(Integer)
-            expect(x.max).to be_a(Integer)
-            expect(range).to be_cover(x)
+            @rnd.range(range).then do |x|
+              expect(x).to     be_a(Range)
+              expect(x.min).to be_a(Integer)
+              expect(x.max).to be_a(Integer)
+              expect(range).to be_cover(x)
+            end
           end
+        end
+
+        it "uses the given random seed" do
+          expect(@rnd.range(@a..@b)).to eq(56..84)
+          expect(@rnd.range(@a..@b)).to eq(-50..-10)
+          expect(@rnd.range(@a..@b)).to eq(-93..-71)
+          expect(@rnd.range(@a..@b)).to eq(-21..88)
+          expect(@rnd.range(@a..@b)).to eq(-16..-1)
+          expect(@rnd.range(@a..@b)).to eq(11..16)
+          expect(@rnd.range(@a..@b)).to eq(-18..23)
+          expect(@rnd.range(@a..@b)).to eq(7..8)
         end
       end
 
-      it "uses the given random seed" do
-        expect(@rnd.range(@a..@b)).to eq(56..84  )
-        expect(@rnd.range(@a..@b)).to eq(-50..-10)
-        expect(@rnd.range(@a..@b)).to eq(-93..-71)
-        expect(@rnd.range(@a..@b)).to eq(-21..88 )
-        expect(@rnd.range(@a..@b)).to eq(-16..-1 )
-        expect(@rnd.range(@a..@b)).to eq(11..16  )
-        expect(@rnd.range(@a..@b)).to eq(-18..23 )
-        expect(@rnd.range(@a..@b)).to eq(7..8    )
-      end
+      todo "when range is given"
     end
 
     context "of floats" do
@@ -175,29 +181,33 @@ describe Forall::Random do
         @b =  100.0
       end
 
-      it "returns a range within the given range" do
-        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
-          expect(@a..@b).to be_cover(range)
+      context "when range is not given" do
+        it "returns a range within the given range" do
+          forall(sampled{|rnd| rnd.range(@a..@b) }).check do |range|
+            expect(@a..@b).to be_cover(range)
 
-          @rnd.range(range).then do |x|
-            expect(x).to     be_a(Range)
-            expect(x.min).to be_a(Float)
-            expect(x.max).to be_a(Float)
-            expect(range).to be_cover(x)
+            @rnd.range(range).then do |x|
+              expect(x).to     be_a(Range)
+              expect(x.min).to be_a(Float)
+              expect(x.max).to be_a(Float)
+              expect(range).to be_cover(x)
+            end
           end
+        end
+
+        it "uses the given random seed" do
+          expect(@rnd.range(@a..@b)).to eq(6.566604645487345..6.827320997284474  )
+          expect(@rnd.range(@a..@b)).to eq(1.9106072710764295..42.71280673030361 )
+          expect(@rnd.range(@a..@b)).to eq(-48.60020900117905..50.53872238206375 )
+          expect(@rnd.range(@a..@b)).to eq(-69.02018390004974..76.77583609993127 )
+          expect(@rnd.range(@a..@b)).to eq(28.68903224722169..34.109287125695744 )
+          expect(@rnd.range(@a..@b)).to eq(44.725433856529065..49.745040910752124)
+          expect(@rnd.range(@a..@b)).to eq(-80.41829562321206..63.70947866752053 )
+          expect(@rnd.range(@a..@b)).to eq(-99.28921818030085..-53.83807606108226)
         end
       end
 
-      it "uses the given random seed" do
-        expect(@rnd.range(@a..@b)).to eq(6.566604645487345..6.827320997284474  )
-        expect(@rnd.range(@a..@b)).to eq(1.9106072710764295..42.71280673030361 )
-        expect(@rnd.range(@a..@b)).to eq(-48.60020900117905..50.53872238206375 )
-        expect(@rnd.range(@a..@b)).to eq(-69.02018390004974..76.77583609993127 )
-        expect(@rnd.range(@a..@b)).to eq(28.68903224722169..34.109287125695744 )
-        expect(@rnd.range(@a..@b)).to eq(44.725433856529065..49.745040910752124)
-        expect(@rnd.range(@a..@b)).to eq(-80.41829562321206..63.70947866752053 )
-        expect(@rnd.range(@a..@b)).to eq(-99.28921818030085..-53.83807606108226)
-      end
+      todo "when range is given"
     end
 
     context "of characters" do
@@ -205,29 +215,34 @@ describe Forall::Random do
         @a = "a"
         @b = "z"
       end
-      it "returns a range within the given range" do
-        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
-          expect(@a..@b).to be_cover(range)
 
-          @rnd.range(range).then do |x|
-            expect(x).to     be_a(Range)
-            expect(x.min).to be_a(String)
-            expect(x.max).to be_a(String)
-            expect(range).to be_cover(x)
+      context "when range is not given" do
+        it "returns a range within the given range" do
+          forall(sampled{|rnd| rnd.range(@a..@b) }).check do |range|
+            expect(@a..@b).to be_cover(range)
+
+            @rnd.range(range).then do |x|
+              expect(x).to     be_a(Range)
+              expect(x.min).to be_a(String)
+              expect(x.max).to be_a(String)
+              expect(range).to be_cover(x)
+            end
           end
+        end
+
+        it "uses the given random seed" do
+          expect(@rnd.range(@a..@b)).to eq("s".."y")
+          expect(@rnd.range(@a..@b)).to eq("m".."z")
+          expect(@rnd.range(@a..@b)).to eq("e".."h")
+          expect(@rnd.range(@a..@b)).to eq("p".."t")
+          expect(@rnd.range(@a..@b)).to eq("n".."u")
+          expect(@rnd.range(@a..@b)).to eq("a".."d")
+          expect(@rnd.range(@a..@b)).to eq("p".."u")
+          expect(@rnd.range(@a..@b)).to eq("o".."s")
         end
       end
 
-      it "uses the given random seed" do
-        expect(@rnd.range(@a..@b)).to eq("s".."y")
-        expect(@rnd.range(@a..@b)).to eq("m".."z")
-        expect(@rnd.range(@a..@b)).to eq("e".."h")
-        expect(@rnd.range(@a..@b)).to eq("p".."t")
-        expect(@rnd.range(@a..@b)).to eq("n".."u")
-        expect(@rnd.range(@a..@b)).to eq("a".."d")
-        expect(@rnd.range(@a..@b)).to eq("p".."u")
-        expect(@rnd.range(@a..@b)).to eq("o".."s")
-      end
+      todo "when range is given"
     end
 
     context "of dates" do
@@ -236,29 +251,33 @@ describe Forall::Random do
         @b = Date.civil(2500, 1, 1)
       end
 
-      it "returns a range within the given range" do
-        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
-          expect(@a..@b).to be_cover(range)
+      context "when range is not given" do
+        it "returns a range within the given range" do
+          forall(sampled{|rnd| rnd.range(@a..@b) }).check do |range|
+            expect(@a..@b).to be_cover(range)
 
-          @rnd.range(range).then do |x|
-            expect(x).to     be_a(Range)
-            expect(x.min).to be_a(Date)
-            expect(x.max).to be_a(Date)
-            expect(range).to be_cover(x)
+            @rnd.range(range).then do |x|
+              expect(x).to     be_a(Range)
+              expect(x.min).to be_a(Date)
+              expect(x.max).to be_a(Date)
+              expect(range).to be_cover(x)
+            end
           end
+        end
+
+        it "uses the given random seed" do
+          expect(@rnd.range(@a..@b)).to eq(Date.civil(1892, 9,10)..Date.civil(1894, 5,22))
+          expect(@rnd.range(@a..@b)).to eq(Date.civil(1862, 6, 6)..Date.civil(2127, 8,23))
+          expect(@rnd.range(@a..@b)).to eq(Date.civil(1534, 2, 1)..Date.civil(2178, 7, 5))
+          expect(@rnd.range(@a..@b)).to eq(Date.civil(1401, 5,12)..Date.civil(2349, 1,18))
+          expect(@rnd.range(@a..@b)).to eq(Date.civil(2036, 6,27)..Date.civil(2071, 9,20))
+          expect(@rnd.range(@a..@b)).to eq(Date.civil(2140, 9,21)..Date.civil(2173, 5, 8))
+          expect(@rnd.range(@a..@b)).to eq(Date.civil(1327, 4,11)..Date.civil(2264, 2,13))
+          expect(@rnd.range(@a..@b)).to eq(Date.civil(1204, 8,14)..Date.civil(1500, 1,16))
         end
       end
 
-      it "uses the given random seed" do
-        expect(@rnd.range(@a..@b)).to eq(Date.civil(1892, 9,10)..Date.civil(1894, 5,22))
-        expect(@rnd.range(@a..@b)).to eq(Date.civil(1862, 6, 6)..Date.civil(2127, 8,23))
-        expect(@rnd.range(@a..@b)).to eq(Date.civil(1534, 2, 1)..Date.civil(2178, 7, 5))
-        expect(@rnd.range(@a..@b)).to eq(Date.civil(1401, 5,12)..Date.civil(2349, 1,18))
-        expect(@rnd.range(@a..@b)).to eq(Date.civil(2036, 6,27)..Date.civil(2071, 9,20))
-        expect(@rnd.range(@a..@b)).to eq(Date.civil(2140, 9,21)..Date.civil(2173, 5, 8))
-        expect(@rnd.range(@a..@b)).to eq(Date.civil(1327, 4,11)..Date.civil(2264, 2,13))
-        expect(@rnd.range(@a..@b)).to eq(Date.civil(1204, 8,14)..Date.civil(1500, 1,16))
-      end
+      todo "when range is given"
     end
 
     context "of times" do
@@ -267,29 +286,33 @@ describe Forall::Random do
         @b = Time.at( 99999999999)
       end
 
-      it "returns a range within the given range" do
-        forall(sampled{|rnd| rnd.range(@a..@b)}).check do |range|
-          expect(@a..@b).to be_cover(range)
+      context "when range is not given" do
+        it "returns a range within the given range" do
+          forall(sampled{|rnd| rnd.range(@a..@b) }).check do |range|
+            expect(@a..@b).to be_cover(range)
 
-          @rnd.range(range).then do |x|
-            expect(x).to     be_a(Range)
-            expect(x.min).to be_a(Time)
-            expect(x.max).to be_a(Time)
-            expect(range).to be_cover(x)
+            @rnd.range(range).then do |x|
+              expect(x).to     be_a(Range)
+              expect(x.min).to be_a(Time)
+              expect(x.max).to be_a(Time)
+              expect(range).to be_cover(x)
+            end
           end
+        end
+
+        it "uses the given random seed" do
+          expect(@rnd.range(@a..@b)).to eq(Time.at( 48611632554.48521 )..Time.at(48755026547.97232))
+          expect(@rnd.range(@a..@b)).to eq(Time.at( 46050833998.58249 )..Time.at(68492043700.953415))
+          expect(@rnd.range(@a..@b)).to eq(Time.at( 18269885049.094524)..Time.at(72796297309.38237))
+          expect(@rnd.range(@a..@b)).to eq(Time.at( 7038898854.817745 )..Time.at(87226709854.07832))
+          expect(@rnd.range(@a..@b)).to eq(Time.at( 60778967735.328476)..Time.at(63760107918.46211))
+          expect(@rnd.range(@a..@b)).to eq(Time.at( 69598988620.36737 )..Time.at(72359772500.16493))
+          expect(@rnd.range(@a..@b)).to eq(Time.at( 769937407.1354618 )..Time.at(80040213266.31773))
+          expect(@rnd.range(@a..@b)).to eq(Time.at(-9609069999.169024 )..Time.at(15389058166.173946))
         end
       end
 
-      it "uses the given random seed" do
-        expect(@rnd.range(@a..@b)).to eq(Time.at( 48611632554.48521 )..Time.at(48755026547.97232))
-        expect(@rnd.range(@a..@b)).to eq(Time.at( 46050833998.58249 )..Time.at(68492043700.953415))
-        expect(@rnd.range(@a..@b)).to eq(Time.at( 18269885049.094524)..Time.at(72796297309.38237))
-        expect(@rnd.range(@a..@b)).to eq(Time.at( 7038898854.817745 )..Time.at(87226709854.07832))
-        expect(@rnd.range(@a..@b)).to eq(Time.at( 60778967735.328476)..Time.at(63760107918.46211))
-        expect(@rnd.range(@a..@b)).to eq(Time.at( 69598988620.36737 )..Time.at(72359772500.16493))
-        expect(@rnd.range(@a..@b)).to eq(Time.at( 769937407.1354618 )..Time.at(80040213266.31773))
-        expect(@rnd.range(@a..@b)).to eq(Time.at(-9609069999.169024 )..Time.at(15389058166.173946))
-      end
+      todo "when range is given"
     end
 
     todo "of datetimes"
@@ -320,7 +343,7 @@ describe Forall::Random do
 
       context "on an array" do
         before do
-          @input = %w(a b c d e f)
+          @input = %w[a b c d e f]
         end
 
         it "returns a value from the distribution" do
@@ -340,24 +363,38 @@ describe Forall::Random do
       end
 
       context "on a range" do
-        before do
-          @input = 500..599
+        context "of integers" do
+          before do
+            @input = 500..599
+          end
+
+          context "when count is not given" do
+            it "returns a value from the distribution" do
+              forall(sampled{|_| }).check{|_| expect(@input).to include(@rnd.sample(@input)) }
+            end
+
+            it "uses the given random seed" do
+              expect(@rnd.sample(@input)).to eq(556)
+              expect(@rnd.sample(@input)).to eq(528)
+              expect(@rnd.sample(@input)).to eq(550)
+              expect(@rnd.sample(@input)).to eq(589)
+              expect(@rnd.sample(@input)).to eq(590)
+              expect(@rnd.sample(@input)).to eq(529)
+              expect(@rnd.sample(@input)).to eq(507)
+              expect(@rnd.sample(@input)).to eq(579)
+            end
+          end
+
+          todo "when count is given"
         end
 
-        it "returns a value from the distribution" do
-          forall(sampled{|_| }).check{|_| expect(@input).to include(@rnd.sample(@input)) }
-        end
+        todo "of floats"
 
-        it "uses the given random seed" do
-          expect(@rnd.sample(@input)).to eq(556)
-          expect(@rnd.sample(@input)).to eq(528)
-          expect(@rnd.sample(@input)).to eq(550)
-          expect(@rnd.sample(@input)).to eq(589)
-          expect(@rnd.sample(@input)).to eq(590)
-          expect(@rnd.sample(@input)).to eq(529)
-          expect(@rnd.sample(@input)).to eq(507)
-          expect(@rnd.sample(@input)).to eq(579)
-        end
+        todo "of times"
+
+        todo "of dates"
+
+        todo "of datetimes"
       end
 
       todo "on a non-enumerable value"
@@ -374,9 +411,32 @@ describe Forall::Random do
     end
   end
 
+  describe "#weighted" do
+    context "when no items are given" do
+      it "raises an error" do
+        expect{ @rnd.weighted([], []) }.to raise_error(ArgumentError)
+      end
+    end
+
+    context "when the number of items and frequences don't match" do
+      it "raises an error" do
+        expect{ @rnd.weighted(%w[a b c], []) }.to raise_error(ArgumentError)
+      end
+    end
+
+    context "when count is given" do
+      todo "returns the given number of items"
+      todo "it chooses items according to their weight"
+    end
+
+    context "when count is not given" do
+      todo "it chooses an item according to its weight"
+    end
+  end
+
   describe "#shuffle" do
-    it "returns a permutation" do
-      forall(sampled{|rnd| rnd.array{|_| rnd.integer }}).check do |array|
+    it "permutes the input" do
+      forall(sampled{|rnd| rnd.array{|_| rnd.integer } }).check do |array|
         expect(@rnd.shuffle(array).sort).to eq(array.sort)
       end
     end
@@ -384,18 +444,120 @@ describe Forall::Random do
     todo "uses the given random seed"
   end
 
+  describe "#permutation" do
+    context "when size is given" do
+      it "returns an array of given size" do
+        forall(sampled{|rnd| rnd.integer(0..100) }).check do |size|
+          expect(@rnd.permutation(size: size).size).to eq(size)
+        end
+      end
+
+      it "returns a permutation" do
+        forall(sampled{|rnd| rnd.integer(0..100) }).check do |size|
+          expect(@rnd.permutation(size: size).sort).to eq((0..size-1).to_a)
+        end
+      end
+    end
+
+    context "when size is not given" do
+      todo "returns an array with size between 1 and 64"
+
+      todo "returns a permutation"
+    end
+
+    todo "uses the given random seed"
+  end
+
   describe "#array" do
-    todo "with unspecified size"
+    context "with unspecified size" do
+      it "requires a block" do
+        expect{ @rnd.array }.to raise_error(ArgumentError, "no block given")
+      end
 
-    todo "with fixed size"
+      it "has between 0 and 64 elements" do
+        forall(sampled{|_| nil }).check do |_|
+          expect(@rnd.array{|_| nil }.size).to be_between(0, 64)
+        end
+      end
 
-    todo "with size range"
+      todo "calls the block once for each element" do
+        forall(sampled{|_| nil }).check do |_|
+          # This doesn't work because value.size is evaluated before the block is called
+          value = nil
+          expect{|b| value = @rnd.array(&b) }.to yield_control.exactly(value.size).times
+        end
+      end
+    end
+
+    context "with fixed size" do
+      it "requires a block" do
+        expect{ @rnd.array(size: 10) }.to raise_error(ArgumentError, "no block given")
+      end
+
+      it "has the specified number of elements" do
+        forall(sampled(0..100)).check do |size|
+          expect(@rnd.array(size: size){|_| nil }.size).to eq(size)
+        end
+      end
+
+      it "calls the block once for each element" do
+        forall(sampled(0..100)).check do |size|
+          expect{|b| @rnd.array(size: size, &b) }.to yield_control.exactly(size).times
+        end
+      end
+    end
+
+    context "with size range" do
+      it "requires a block" do
+        expect{ @rnd.array(size: 1..9) }.to raise_error(ArgumentError, "no block given")
+      end
+
+      it "has a size within the specified range" do
+        forall(sampled{|rnd| rnd.range(0..100) }).check do |range|
+          expect(range).to cover(@rnd.array(size: range){|_| nil }.size)
+        end
+      end
+
+      todo "calls the block once for each element" do
+        forall(sampled{|rnd| rnd.range(0..100) }).check do |range|
+          # This doesn't work because value.size is evaluated before the block is called
+          value = nil
+          expect{|b| value = @rnd.array(size: range, &b) }.to yield_control.exactly(value.size).times
+        end
+      end
+    end
   end
 
   describe "#hash" do
-    todo "with unspecified size"
+    context "with unspecified size" do
+      it "requires a block" do
+        expect{ @rnd.hash }.to raise_error(ArgumentError, "no block given")
+      end
 
-    todo "with fixed size"
+      it "has between 0 and 64 elements" do
+      end
+
+      it "calls the block at least once per element" do
+      end
+    end
+
+    context "with fixed size" do
+      it "requires a block" do
+        expect{ @rnd.hash(size: 10) }.to raise_error(ArgumentError, "no block given")
+      end
+
+      it "calls the block at least once per element" do
+        # forall(sampled(0..100)).check do |size|
+        #   expect{|b| @rnd.array(size: size){|rnd| b.call;  } }.to yield_control.exactly(size).times
+        # end
+      end
+
+      it "has the specified number of elements" do
+        # forall(sampled(0..100)).check do |size|
+        #   expect(@rnd.array(size: size){|_| nil }.size).to eq(size)
+        # end
+      end
+    end
 
     todo "with size range"
   end
