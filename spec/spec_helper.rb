@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
 require "simplecov"
+
 SimpleCov.start do
   enable_coverage :branch
   add_filter "/spec"
 end
 
 require "forall"
+Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each(&method(:require))
 
 RSpec.configure do |config|
-  config.include(Forall::Matchers)
+  config.include(Forall::RspecDsl)
+  config.include(FunctionMatchers)
 
   # Use --tag "~todo" to skip these specs
   config.alias_example_to :todo, todo: true, skip: "TODO"
