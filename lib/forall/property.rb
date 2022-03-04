@@ -5,39 +5,38 @@ class Forall
   # @TODO
   class Property < Proc
 
-    # TODO
+    # Used internally to abort the search for counterexamples
+    #
+    # @private
     class Counterexample < StandardError; end
 
-    def recheck(random, seed, size, config: Config.default)
+    def recheck
       # @TODO
     end
 
-    # @return [Report]
-    def forall(random, config: Config.default, prng: ::Random.new)
-      size          = 0
+    def forall(input, config: Config.default)
       test_count    = 0
       discard_count = 0
       control       = Control.new
       coverage      = Coverage.new
 
-      while true
-        return _too_many_discards(test_count, discard_count, coverage, prng.seed, config) \
+      input.each do |test|
+        return _too_many_discards(test_count, discard_count, coverage, config) \
           if discard_count > config.max_discards
 
-        return _check_coverage(test_count, discard_count, coverage, prng.seed, config) \
+        return _check_coverage(test_count, discard_count, coverage, config) \
           if test_count >= config.min_tests
 
-        # TODO
+        # Repeatedly checking for statistical significance increases the
+        # chance of finding it, compared to checking at the end of the
+        # experiment. Stopping early increases the chance for making the
+        # wrong determination on the coverage.
         if config.stop_early and test_count >= 100 and test_count.modulo(100).zero?
-          return _success(test_count, discard_count, coverage, prng.seed, config) \
-            if coverage.satisfied?(test_count, config.confidence)
-          return _coverage_insufficient(test_count, discard_count, coverage, prng.seed, config) \
-            if coverage.failed?(test_count, config.confidence)
+          return _success(test_count, discard_count, coverage, config) \
+            if coverage.satisfied?(test_count, config.significance_level)
+          return _coverage_insufficient(test_count, discard_count, coverage, config) \
+            if coverage.unsatisfied?(test_count, config.significance_level)
         end
-
-        test  = random.run(prng, size)
-        size += 1
-        size  = 0 if size > 99
 
         begin
           catch(:discard) do
@@ -56,14 +55,12 @@ class Forall
           shrunk, reason, shrink_count = _shrink(test, reason, config)
 
           return _counterexample(
-            size,
             shrunk,
             reason,
             test_count,
             discard_count,
             shrink_count,
             coverage,
-            prng.seed,
             config)
         end
       end
@@ -71,19 +68,16 @@ class Forall
 
   private
 
-    def _success(test_count, discard_count, coverage, seed, config)
+    def _success(test_count, discard_count, coverage, config)
       Report::Success.new(
-        seed:           seed,
-        config:         config,
-        test_count:     test_count,
-        discard_count:  discard_count,
-        coverage:       coverage)
+        config:        config,
+        test_count:    test_count,
+        discard_count: discard_count,
+        coverage:      coverage)
     end
 
-    def _counterexample(size, test, reason, test_count, discard_count, shrink_count, coverage, seed, config)
+    def _counterexample(test, reason, test_count, discard_count, shrink_count, coverage, config)
       Report::Counterexample.new(
-        size:           size,
-        seed:           seed,
         counterexample: test,
         config:         config,
         reason:         reason,
@@ -93,57 +87,60 @@ class Forall
         discard_count:  discard_count)
     end
 
-    def _too_many_discards(test_count, discard_count, coverage, seed, config)
+    def _too_many_discards(test_count, discard_count, coverage, config)
       Report::TooManyDiscards.new(
-        seed:           seed,
-        config:         config,
-        coverage:       coverage,
-        test_count:     test_count,
-        discard_count:  discard_count)
+        config:        config,
+        coverage:      coverage,
+        backtrace:     caller,
+        test_count:    test_count,
+        discard_count: discard_count)
     end
 
-    def _coverage_insufficient(test_count, discard_count, coverage, seed, config)
+    def _coverage_insufficient(test_count, discard_count, coverage, config)
       Report::CoverageInsufficient.new(
-        seed:           seed,
-        config:         config,
-        coverage:       coverage,
-        test_count:     test_count,
-        discard_count:  discard_count)
+        config:        config,
+        coverage:      coverage,
+        backtrace:     caller,
+        test_count:    test_count,
+        discard_count: discard_count)
     end
 
-    def _coverage_insignificant(test_count, discard_count, coverage, seed, config)
-      Report::CoverageInsufficient.new(
-        seed:           seed,
-        config:         config,
-        coverage:       coverage,
-        test_count:     test_count,
-        discard_count:  discard_count)
+    def _coverage_insignificant(test_count, discard_count, coverage, config)
+      Report::CoverageInsignificant.new(
+        config:        config,
+        coverage:      coverage,
+        backtrace:     caller,
+        test_count:    test_count,
+        discard_count: discard_count)
     end
 
-    def _check_coverage(test_count, discard_count, coverage, seed, config)
-      if config.confidence.nil?
-        # We can't make any claims about statistical significance 
+    def _check_coverage(test_count, discard_count, coverage, config)
+      if config.significance_level.nil?
+        # We can't make any claims about statistical significance
         if coverage.satisfied?(test_count)
-          _success(test_count, discard_count, coverage, seed, config)
+          _success(test_count, discard_count, coverage, config)
         else
-          _coverage_insufficient(test_count, discard_count, coverage, seed, config)
+          _coverage_insufficient(test_count, discard_count, coverage, config)
         end
 
-      elsif coverage.satisfied?(test_count, config.confidence)
+      elsif coverage.satisfied?(test_count, config.significance_level)
         # We're certain coverage is sufficient
-        _success(test_count, discard_count, coverage, seed, config)
+        _success(test_count, discard_count, coverage, config)
 
-      elsif coverage.failed?(test_count, config.confidence)
+      elsif coverage.unsatfied?(test_count, config.significance_level)
         # We're certain coverage is insufficient
-        _coverage_insufficient(test_count, discard_count, coverage, seed, config)
+        _coverage_insufficient(test_count, discard_count, coverage, config)
 
       else
         # We can't be sure the result wasn't due to sampling error
-        _coverage_insignificant(test_count, discard_count, coverage, seed, config)
+        _coverage_insignificant(test_count, discard_count, coverage, config)
       end
     end
 
-    # @param
+    # @param  [Tree<A>]   tree
+    # @param  [Exception] reason
+    # @param  [Config]    config
+    #
     # @return [A, Exception, Integer]
     def _shrink(tree, reason, config)
       control      = Control.new
@@ -171,47 +168,6 @@ class Forall
       end
 
       [tree.value, reason, shrink_count]
-    end
-  end
-
-  # TODO: Rename
-  class Property::Control
-    # @return [Hash<String, Float>]
-    attr_reader :minimum
-
-    # @return [Hash<String, Boolean>]
-    attr_reader :covered
-
-    def initialize
-      @minimum = {}
-      @covered = {}
-    end
-
-    def reset!
-      @minimum = {}
-      @covered = {}
-    end
-
-    def discard
-      throw :discard, true
-    end
-
-    def classify(label, bool = true)
-      cover(label, 0.0, bool)
-    end
-
-    # Require some percentage of tests to be covered by the label, otherwise the
-    # property will fail with Result::GaveUp.
-    #
-    # @param [String]   label
-    # @param [Float]    minimum
-    # @param [Boolean]  covered
-    def cover(label, minimum, covered = true)
-      raise RangeError, "coverage must be a Float within 0..1" \
-        unless minimum.is_a?(Float) and minimum.between?(0, 1)
-
-      @minimum[label] = minimum
-      @covered[label] = covered
     end
   end
 end

@@ -23,7 +23,7 @@ describe Forall::Property do
         result = Forall::Property.new do |integer, _state|
           # This will fail for any odd integers greater than 50
           integer < 50 or integer.even?
-        end.forall(@random, config: @config, prng: Random.new(1))
+        end.forall(@random.each(prng: ::Random.new(1)), config: @config)
 
         expect(result).to                be_a(Forall::Report::Counterexample)
         expect(result.discard_count).to  eq(0)

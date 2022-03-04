@@ -3,88 +3,188 @@
 class Forall
   using Forall::Refinements
 
-  # TODO
+  # Provides a way to assert that some minimum proportion of the randomly
+  # sampled test cases have some user-defined characteristic. For instance,
+  # we can assert that at least 30% of test cases are even numbers:
+  #
+  #   forall(...){|x| cover(0.30, "even number", x.even?); ... }
+  #
+  # Because test cases are randomly sampled, there is a chance that label
+  # coverage is either achieved or not due only to random chance, rather than
+  # the characteristics of the whole population. To address this issue, this
+  # class also provides optional statistical hypothesis testing and allows
+  # users to specify a significance level.
   class Coverage
     # @return [Hash<String, Float>]
-    attr_reader :minimum
+    attr_reader :required
 
-    # @return [Hash<String, Numeric>]
-    attr_reader :covered
+    # @return [Hash<String, Integer>]
+    attr_reader :coverage
 
-    def initialize(minimum = {}, covered = {})
-      @minimum = minimum
-      @covered = covered
+    def initialize
+      @required = {}
+      @coverage = {}
     end
 
+    # Increments coverage from the data collected from a single test case
+    #
+    # @return [void]
     def update(control)
-      update_minimums(control.minimum)
-      update_coverage(control.covered)
-      control.reset!
-    end
-
-    def update_minimums(minimum)
-      minimum.each do |label, value|
-        @minimum[label] = value
+      control.required.each do |label, value|
+        @required[label] = value
       end
-    end
 
-    def update_coverage(covered)
-      covered.each do |label, value|
-        @covered[label] ||= 0
-        @covered[label]  += 1 if value
+      control.coverage.each do |label, value|
+        @coverage[label] ||= 0
+        @coverage[label]  += 1 if value
       end
+
+      control.clear
     end
 
-    # TODO
-    def satisfied?(test_count, confidence_level = nil)
-      if confidence_level.nil?
-        @minimum.each do |label, minimum|
-          return false if @covered.fetch(label, 0) / test_count < minimum
+    # True when all labels have statistically significant coverage that meets or
+    # exceeds the required minimum fraction of coverage.
+    def satisfied?(test_count, significance_level = nil)
+      satisfied(test_count, significance_level).sort == @required.keys.sort
+    end
+
+    # True when any labels have statistically significant coverage that does not
+    # meet or exceed the required minimum fraction of coverage.
+    def unsatisfied?(test_count, significance_level = nil)
+      unsatisfied(test_count, significance_level).any?
+    end
+
+    # Enumerates all labels that have sufficient coverage. If significance level
+    # is not given, this is the complement of `unsatisfied`, and their sum will
+    # enumerate all labels.
+    #
+    # When a significance level is given, enumerates only labels that have
+    # sufficient and statistically significant coverage. Labels that do not have
+    # statistical significance will not be enumerated by either `satisfied?` or
+    # `unsatisfied?`, because there's not enough information to determine which
+    # classification applies.
+    #
+    # Below is a diagram showing three different confidence intervals, A, B, and
+    # C. The required coverage level is X. In this diagram, we can be confident
+    # that A does not satisfy the requirement, because even its upper bound is
+    # less than X. We can also be confident that C does satisfy the requirement,
+    # because even its lower bound exceeds X. Lastly, we cannot confidently make
+    # a determination about B, but the interval width will shrink as more data
+    # is collected.
+    #
+    #                      *-C-*
+    #             *------B------*
+    #         *---A---*
+    #     0 -------------X----------------------------- 1
+    #
+    # @return [Enumerator<String>]
+    def satisfied(test_count, significance_level = nil)
+      if significance_level.nil?
+        Enumerator.new do |result|
+          @required.each do |label, minimum|
+            ratio  = @coverage.fetch(label, 0).to_f / test_count
+            result << label if ratio >= minimum
+          end
         end
       else
-        a = 1 - confidence_level
-        n = test_count.to_f
-        z = _probit(1 - (a/2))
+        Enumerator.new do |result|
+          # Compute the upper bound of the Wilson score interval.
+          n = test_count.to_f
+          z = _probit(1 - (significance_level/2))
 
-        zsq = z * z
+          zsq = z * z
 
-        @minimum.each do |label, minimum|
-          np  = @covered.fetch(label, 0)
-          p   = np / n
-          mid = 2*np + zsq
-          off = z * Math.sqrt(zsq - 1/n + 4*np*(1-p) - (4*p-2)) + 1
-          lo  = (mid - off) / (2 * (n + zsq))
+          @required.each do |label, minimum|
+            np  = @coverage.fetch(label, 0)
+            p   = np / n
+            mid = 2*np + zsq
+            off = z * Math.sqrt(zsq - 1/n + 4*np*(1-p) - (4*p-2)) + 1
+            low = (mid - off) / (2 * (n + zsq))
 
-          return false if lo < minimum
+            result << label if low >= minimum
+          end
         end
       end
-
-      true
     end
 
-    # TODO
-    def failed?(test_count, confidence_level)
-      a = 1 - confidence_level
-      n = test_count.to_f
-      z = _probit(1 - (a/2))
+    # Enumerates all labels that do not have sufficient coverage. If
+    # significance level is not given, this is the complement of `satisfied`,
+    # and their sum will enumerate all labels.
+    #
+    # When a significance level is given, enumerates only labels that have
+    # insufficient but statistically significant coverage. Labels that do not have
+    # statistical significance will not be enumerated by either `satisfied` or
+    # `unsatisfied`, because there's not enough information to determine which
+    # classification applies.
+    #
+    # Below is a diagram showing three different confidence intervals, A, B, and
+    # C. The required coverage level is X. In this diagram, we can be confident
+    # that A does not satisfy the requirement, because even its upper bound is
+    # less than X. We can also be confident that C does satisfy the requirement,
+    # because even its lower bound exceeds X. Lastly, we cannot confidently make
+    # a determination about B, but the interval width will shrink as more data
+    # is collected.
+    #
+    #                      *-C-*
+    #             *------B------*
+    #         *---A---*
+    #     0 -------------X----------------------------- 1
+    #
+    # @return [Enumerator<String>]
+    def unsatisfied(test_count, significance_level = nil)
+      if significance_level.nil?
+        Enumerator.new do |result|
+          @required.each do |label, minimum|
+            ratio  = @coverage.fetch(label, 0).to_f / test_count
+            result << label if ratio >= minimum
+          end
+        end
+      else
+        Enumerator.new do |result|
+          # Compute the lower bound of the Wilson score interval.
+          n = test_count.to_f
+          z = _probit(1 - (significance_level/2))
 
-      zsq = z * z
+          zsq = z * z
 
-      @minimum.each do |label, minimum|
-        np  = @covered.fetch(label, 0)
-        p   = np / n
-        mid = 2*np + zsq
-        off = z * Math.sqrt(zsq - 1/n + 4*np*(1-p) - (4*p-2)) + 1
-        hi  = (mid + off) / (2 * (n + zsq))
+          @required.each do |label, minimum|
+            np  = @coverage.fetch(label, 0)
+            p   = np / n
+            mid = 2*np + zsq
+            off = z * Math.sqrt(zsq - 1/n + 4*np*(1-p) - (4*p-2)) + 1
+            hi  = (mid + off) / (2 * (n + zsq))
 
-        return true if hi < minimum
+            result << label if hi < minimum
+          end
+        end
       end
-
-      false
     end
 
-    # Calculates the standard norrmal random variable for which the cumulative
-    # probability is `p`, where `0 <= p <= 1`.
+    # Not used, only for double-checking math in `satisfied` and `unsatisfied`
+    # def confidence_interval(np, n, significance_level)
+    #   z   = _probit(1 - (significance_level/2))
+    #   zsq = z * z
+    #   np  = np.to_f
+    #   n   = n.to_f
+    #   p   = np / n
+    #   mid = 2*np + zsq
+    #   off = z * Math.sqrt(zsq - 1/n + 4*np*(1-p) - (4*p-2)) + 1
+
+    #   lo  = (mid - off) / (2 * (n + zsq))
+    #   hi  = (mid + off) / (2 * (n + zsq))
+
+    #   lo .. hi
+    # end
+
+  private
+
+    # This approximates the value of a standard normal random variable
+    # associated with the given cumulative probability. For example, p(X <
+    # -1.96) = 0.025, so _probit(0.025) = -1.96. It is also described as the
+    # quantile function for the standard normal distribution.
+    #
+    # @param [Float]  0 <= p <= 1
+    # @return [Float]
     def _probit(p)
       return  Float::NAN       if p <  0
       return -Float::INFINITY  if p == 0

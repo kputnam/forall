@@ -11,7 +11,6 @@ require "forall"
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each(&method(:require))
 
 RSpec.configure do |config|
-  config.include(Forall::RspecDsl)
   config.include(FunctionMatchers)
 
   # Use --tag "~todo" to skip these specs

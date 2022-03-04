@@ -2,6 +2,8 @@
 
 describe Forall::Bounds do
   using Forall::Refinements
+  include Forall::RSpecHelpers
+  include Forall::RSpecHelpers::Bounds
 
   before do
     @size  = Forall::Random.integer(0..99)

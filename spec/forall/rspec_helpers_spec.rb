@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe Forall::RspecDsl do
+describe Forall::RSpecHelpers do
   using Forall::Refinements
 
   describe "forall" do

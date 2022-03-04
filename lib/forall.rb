@@ -4,8 +4,9 @@
 class Forall
   autoload :Bounds,       "forall/bounds"
   autoload :Config,       "forall/config"
+  autoload :Control,      "forall/control"
   autoload :Coverage,     "forall/coverage"
-  autoload :RspecDsl,     "forall/rspec_dsl"
+  autoload :RSpecHelpers, "forall/rspec_helpers"
   autoload :Property,     "forall/property"
   autoload :Random,       "forall/random"
   autoload :Report,       "forall/report"

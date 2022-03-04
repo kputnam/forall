@@ -2,6 +2,8 @@
 
 source "http://rubygems.org"
 
+gem "term-ansicolor"
+
 group :development do
   gem "irb"
   gem "rake"

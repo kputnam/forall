@@ -33,25 +33,23 @@ class Forall
     # @return [Boolean]
     attr_reader :stop_early
 
-    # When checking label coverage, this is the level of confidence required for
-    # a statistically significant result. If this is `nil`, then only percent of
-    # coverage is checked.
+    # TODO
     #
     # @return [Float]
-    def confidence
-      if defined? @confidence and not @confidence.nil?
-        if @confidence <= 0
-          # Force alpha to be positive
-          2.710505431213761e-20
-        else
-          @confidence
-        end
+    def significance_level
+      return unless defined? @significance_level and !@significance_level.nil?
+
+      if @significance_level <= 0
+        # Force alpha to be positive
+        2.710505431213761e-20
+      else
+        @significance_level
       end
     end
 
     def initialize(**attributes)
       attributes.each do |k, v|
-        raise NoMethodError, "undefined attribute `#{k}' for #{self.inspect}"\
+        raise NoMethodError, "undefined attribute `#{k}' for #{inspect}"\
           unless respond_to?(k)
 
         instance_variable_set("@#{k}", v)

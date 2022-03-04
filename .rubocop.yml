@@ -10,6 +10,10 @@ Layout/SpaceInsideHashLiteralBraces:
 Layout/AccessModifierIndentation:
   EnforcedStyle: outdent
 
+Layout/HashAlignment:
+  EnforcedColonStyle: table
+  EnforcedHashRocketStyle: table
+
 Layout/SpaceAroundOperators:
   Enabled: false
 
