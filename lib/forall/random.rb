@@ -142,8 +142,8 @@ class Forall
       Random.new{|_prng, _scale| Tree.leaf(value) }
     end
 
-    def stub(items)
-      Random::Stub.new(items){|_,_| }
+    def scale
+      Random.new{|_, scale| Tree.leaf(scale) }
     end
 
     # @param  [Enumerable<Random<A>, Random<B>, ...>]
@@ -615,26 +615,6 @@ class Forall
 
     # @!endgroup
     ###########################################################################
-  end
-
-  class Random::Stub < Forall::Random
-    def initialize(items)
-      super()
-      @name  = "#{items.scale} items"
-      @items = items.dup
-    end
-
-    def [](_prng, _scale)
-      if @items.empty?
-        raise "exhausted" if @items.empty?
-      else
-        Tree.leaf(@items.shift)
-      end
-    end
-
-    def inspect
-      "#{Forall::Random.name[/(?<=::).+$/]}.stub(#{@name})"
-    end
   end
 
 end

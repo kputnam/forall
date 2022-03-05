@@ -14,13 +14,13 @@ class Forall
       # @TODO
     end
 
-    def forall(input, config: Config.default)
+    def forall(input, *args, config: Config.default, **kwargs)
       test_count    = 0
       discard_count = 0
       control       = Control.new
       coverage      = Coverage.new
 
-      input.each do |test|
+      input.each(*args, **kwargs) do |test|
         return _too_many_discards(test_count, discard_count, coverage, config) \
           if discard_count > config.max_discards
 
@@ -146,16 +146,25 @@ class Forall
       control      = Control.new
       shrink_count = 0
 
+      # TODO: When all subtree descendants are smaller than their next sibling
+      # subtree's descendants, we can be sure that a counterexample found in the
+      # first subtree will be smaller than any found in later sibling trees.
+      #
+      # Yet we may fail to find the minimal counterexample because subtrees
+      # are pruned when their root is not a counterexample, even though one
+      # of its descendants could be.
       while shrink_count < config.max_shrinks
         stop = true
 
         tree.children.each do |shrunk|
-          # TODO: This could result in an infinite loop if the shrink tree is
-          # infinite and the property discards all the shrunken tests
+          # TODO: How many discards should be allowed when shrinking? If this
+          # is not capped, we can get caught in an infinite loop here.
           catch(:discard) do
             self[shrunk.value, control] or raise Counterexample
             shrink_count += 1
           end
+
+          break unless shrink_count < config.max_shrinks
         rescue Exception => reason_
           reason        = reason_
           tree          = shrunk

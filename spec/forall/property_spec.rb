@@ -5,33 +5,70 @@ describe Forall::Property do
 
   describe "#forall" do
     before do
-      @random = Forall::Random.integer(0..100)
+
+      zero = Forall::Tree.leaf(0) # minimal counterexample
+      one  = Forall::Tree.leaf(1) # not a counterexample
+      two  = Forall::Tree.leaf(2) # counterexample
+      tree = two.prepend_children([one].cycle.lazy.take(1000) + [zero].each)
+
+      @input  = [one].cycle.lazy.take(100) + [tree].cycle
       @config = Forall::Config.default
     end
 
+    it "increments scale parameter after each test" do
+      values = []
+
+      Forall::Property.new{|n, _| values << n }
+        .forall(Forall::Random.scale)
+
+      expect(values).to eq([*0..99].cycle.take(@config.min_tests))
+    end
+
     context "when no counterexample is found" do
+      before do
+        @result = Forall::Property.new{|_, _| true }
+                    .forall(@input, config: @config)
+      end
+
       it "reports success" do
-        result = Forall::Property.new{|_, _| true }.forall(@random, config: @config)
-        expect(result).to               be_a(Forall::Report::Success)
-        expect(result.test_count).to    eq(@config.min_tests)
-        expect(result.discard_count).to eq(0)
+        expect(@result).to be_a(Forall::Report::Success)
+      end
+
+      it "runs all tests" do
+        expect(@result.test_count).to eq(@config.min_tests)
       end
     end
 
     context "when a counterexample is found" do
-      it "reports a failure" do
-        result = Forall::Property.new do |integer, _state|
-          # This will fail for any odd integers greater than 50
-          integer < 50 or integer.even?
-        end.forall(@random.each(prng: ::Random.new(1)), config: @config)
+      before do
+        @property = Forall::Property.new{|x, _| x == 1 }
+        @config   = Forall::Config.default.update(min_tests: 101)
+      end
 
-        expect(result).to                be_a(Forall::Report::Counterexample)
-        expect(result.discard_count).to  eq(0)
-        expect(result.counterexample).to eq(51) # Closest odd value above 50 to @random's origin (0)
+      it "reports a failure" do
+        result = @property.forall(@input, config: @config)
+        expect(result).to be_a(Forall::Report::Counterexample)
+      end
+
+      it "shrinks the counterexample" do
+        result = @property.forall(@input, config: @config.update(max_shrinks: 1001))
+        expect(result.shrink_count).to   eq(1001)
+        expect(result.counterexample).to eq(0)
+      end
+
+      it "doesn't exceed max_shrinks" do
+        result = @property.forall(@input, config: @config.update(max_shrinks: 1000))
+        expect(result.shrink_count).to   eq(1000)
+        expect(result.counterexample).to eq(2)
       end
     end
 
     context "when an exception is raised" do
+      it "reports a failure" do
+      end
+
+      it "shrinks the counterexample" do
+      end
     end
 
     context "when max_discards is exceeded" do

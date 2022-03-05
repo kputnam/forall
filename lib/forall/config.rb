@@ -33,8 +33,15 @@ class Forall
     # @return [Boolean]
     attr_reader :stop_early
 
-    # TODO
-    #
+    def initialize(**attributes)
+      attributes.each do |k, v|
+        raise NoMethodError, "undefined attribute `#{k}' for #{inspect}"\
+          unless respond_to?(k)
+
+        instance_variable_set("@#{k}", v)
+      end
+    end
+
     # @return [Float]
     def significance_level
       return unless defined? @significance_level and !@significance_level.nil?
@@ -47,12 +54,15 @@ class Forall
       end
     end
 
-    def initialize(**attributes)
-      attributes.each do |k, v|
-        raise NoMethodError, "undefined attribute `#{k}' for #{inspect}"\
-          unless respond_to?(k)
+    # @return [Config]
+    def update(**attributes)
+      clone.tap do |c|
+        attributes.each do |k, v|
+          raise NoMethodError, "undefined attribute `#{k}' for #{inspect}"\
+            unless respond_to?(k)
 
-        instance_variable_set("@#{k}", v)
+          c.instance_variable_set("@#{k}", v)
+        end
       end
     end
   end

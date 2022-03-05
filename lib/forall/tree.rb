@@ -114,7 +114,7 @@ class Forall
     # Removes all nodes that satisfy the predicate. If root node is removed,
     # `nil` is returned. This method does not preserve the shape of the tree:
     # When other nodes are removed, they are replaced by their children, which
-    # are recursively filtered. 
+    # are recursively filtered.
     #
     # @yieldparam  [A]
     # @yieldreturn [Boolean]
@@ -129,7 +129,7 @@ class Forall
     # Removes all nodes that don't satisfy the predicate. If root node is
     # removed, `nil` is returned. This method does not preserve the shape of the
     # tree: When other nodes are removed, they are replaced by their children,
-    # which are recursively filtered. 
+    # which are recursively filtered.
     #
     # @yieldparam  [A]
     # @yieldreturn [Boolean]
@@ -207,13 +207,9 @@ class Forall
     end
 
     # @TODO: Change _drop_one so the tree is shorter and wider, rather than
-    # removing only one item at each lewel. Also, this terminates with empty
-    # lists at the leaves, but it may be better to structure the tree more like
-    # Random#numeric_tree. It's not yet clear how an "origin" on size would be
-    # determined though.
-    #
-    # @TODO: The current implementation results in nodes with duplicate values.
-    # For example:
+    # removing only one item at each level. Maybe use `numeric_tree(size, 0)`
+    # to determine the size of the lists. This might even address the problem
+    # of having lists show up in multiple places in the tree as shown here:
     #
     #   >> T.interleave([T.leaf(1), T.leaf(2), T.leaf(3)]).print($stdout)
     #   [1, 2, 3]
