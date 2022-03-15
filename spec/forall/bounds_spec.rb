@@ -69,7 +69,7 @@ describe Forall::Bounds do
       @origin = Forall::Random.float(0..1)
     end
 
-    it "bounds grow exponentially with size" do
+    pending "bounds grow exponentially with size" do
       forall(Forall::Random.sequence(@range_to_f.filter{|r| r.begin != r.end }, @origin)) do |range, scale|
         origin      = range.begin + (scale * (range.end - range.begin))
         exponential = Forall::Bounds.exponential(range, origin: origin)

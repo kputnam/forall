@@ -102,6 +102,21 @@ describe Forall::Random do
       strings = @strings.sample(prng: Random.new(100))
       expect(strings.to_a).to eq(numbers.to_a.map(&:to_s))
     end
+
+    it "doesn't reevaluate tree nodes" do
+      state  = 0
+      effect = @numbers.map{|x| state += x }
+
+      # The full tree isn't fully reified, because it's done lazily. But the
+      # root value is determined, and the subtrees are functions of this root.
+      result = effect.sample
+
+      # See comment in the "#flat_map{|x| ... } doesn't reevaluate tree nodes"
+      # specification
+      r1 = result.to_a
+      r2 = result.to_a
+      expect(r1).to eq(r2)
+    end
   end
 
   todo "#ap(*args)"
@@ -207,7 +222,23 @@ describe Forall::Random do
       t2 = random.float_(0..1)
       t3 = t1.flat_map{|_| t2 }
 
+      # The full tree isn't fully reified, because it's done lazily. But the
+      # root value is determined, and the subtrees are functions of this root.
       result = t3.sample
+
+      # Tree children are produced on-demand during iteration. So it's possible
+      # that the Enumerator yields different children each time its iterated,
+      # which would be bad.
+      #
+      # Normally this wouldn't happen, because most Random constructors only
+      # randomly select a root element and the rest of the tree is created
+      # deterministically.
+      #
+      # However, using `Random#flat_map` would guarantee this to happen. Even
+      # though the first tree is created once and can't change, the second tree
+      # is constructed by mapping a random tree generator over every node in the
+      # first tree. This is solved by caching the generated nodes with
+      # `Enumerator#as_needed`, defined in `Forall::Refinements`
       r1 = result.to_a
       r2 = result.to_a
       expect(r1).to eq(r2)
@@ -215,7 +246,6 @@ describe Forall::Random do
   end
 
   describe "#filter{|x| ... }" do
-
   end
 
   todo "#shrink{|x| ... }"
