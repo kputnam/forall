@@ -75,7 +75,7 @@ class Forall
 
   module RSpecHelpers::Random
     %w[sequence bernoulli binomial geometric negative_binomial hypergeometric
-    poisson uniform normal exponential gamma beta chi_square student_t integer
+    poisson uniform normal exponential gamma beta chi_square student_t
     boolean integer integer_ float float_ complex range choose weighted
     permutation subsequence array hash set binit octit digit hexit lowercase
     uppercase alpha alphanum ascii latin byte utf8 utf8_all].each do |m|

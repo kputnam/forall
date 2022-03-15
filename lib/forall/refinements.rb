@@ -23,6 +23,9 @@ class Forall
 
     refine ::Range do
       # Returns a smaller Range that fits within the given limit Range
+      #
+      # @param  [Range] limit
+      # @return [Range]
       def clamp(limit)
         if limit.include?(self.begin) and limit.include?(self.end)
           self
@@ -31,14 +34,28 @@ class Forall
         end
       end
 
-      # Default implemenntation (from Enumerable) eagerly evaluates all elements
+      # It usually makes more sense for `#map` to return the same type as its
+      # receiver. The implementation for `Range#map` (from Enumerable) converts
+      # to array, then maps over each element.
+      #
+      # @example
+      #   (1..5).map{|x| x * 2} #=> 2..10
+      #
+      # @yieldparam  [A]
+      # @yieldreturn [B]
+      # @return      [Range<B>]
       def map(&block)
         Range.new(block[self.begin], block[self.end], exclude_end?)
       end
     end
 
     refine ::Enumerator do
-      # Default implemenntation (from Enumerable) eagerly evaluates all elements
+      # Default implementation (from Enumerable) eagerly evaluates all elements
+      #
+      # @example
+      #   [1, 2, 3].each.map{|x| x + 1 } #=> Enumerator
+      #
+      # @return  [Enumerator]
       def map(&block)
         Enumerator.new do |e|
           each do |x|
@@ -47,6 +64,11 @@ class Forall
         end
       end
 
+      # Default implementation (from Enumerable) eagerly evaluates all elements
+      #
+      # @example
+      #   [1, 2, 3].each.flat_map{|x| [1**x, 2**x, 3**x] } #=> Enumerator
+      #
       # @yieldparam  [A]
       # @yieldreturn [Enumerator<A>]
       # @return      [Enumerator<A>]
@@ -54,13 +76,16 @@ class Forall
         Enumerator.new{|e| each{|x| block[x].each{|y| e << y }}}
       end
 
-      def by_need
+      def as_needed
         Forall::Need.new(self)
       end
     end
 
     refine ::Enumerator::Chain do
-      def by_need
+      # There's no means to directly access the enumerators that comprise this
+      # chain of enumerators, so we just have to assume that each component is
+      # already an instance of `Need`
+      def as_needed
         self
       end
     end
@@ -73,19 +98,26 @@ class Forall
       super(){|e| }
     end
 
+    def as_needed
+      self
+    end
+
     def each(&block)
       return self unless block_given?
 
       if @enum
-        @cache.each do |item_|
-          block[item_]
+        # This is written to allow each { .. } to stop early. The next call to
+        # each will use the cached items at the start, then resume iteration of
+        # the underlying enum.
+        @cache.each do |item|
+          block[item]
         end
 
         while true
           begin
-            item = @enum.next
-            @cache << item
-            @enum.feed(block[item])
+            item_  = @enum.next
+            @cache << item_
+            @enum.feed(block[item_])
           rescue StopIteration
             @enum.rewind
             @enum = nil
@@ -94,26 +126,11 @@ class Forall
         end
       end
 
-      @cache.each{|item_| block[item_] }
+      @cache.each{|item| block[item] }
     end
-
-    #def map(&block)
-    #  super.by_need
-    #end
-
-    # @yieldparam  [A]
-    # @yieldreturn [Enumerator<A>]
-    # @return      [Enumerator<A>]
-    #def flat_map(&block)
-    #  super.by_need
-    #end
 
     def size
       @enum.size
-    end
-
-    def by_need
-      self
     end
   end
 end

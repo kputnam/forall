@@ -10,7 +10,7 @@ class Forall
     # @private
     class Counterexample < StandardError; end
 
-    def recheck
+    def recheck(prng:, scale:)
       # @TODO
     end
 
@@ -20,6 +20,8 @@ class Forall
       control       = Control.new
       coverage      = Coverage.new
 
+      # @TODO: Need a way for `input` to provide the current value of the random
+      # seed, but also need to maintain compatibility with non-Random input.
       input.each(*args, **kwargs) do |test|
         return _too_many_discards(test_count, discard_count, coverage, config) \
           if discard_count > config.max_discards

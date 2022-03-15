@@ -3,7 +3,7 @@
 class Forall
   using Forall::Refinements
 
-  # 
+  #
   class Config
     # Check the property this many times, unless `stop_early?` is enabled, in
     # which case fewer tests may be run (the outcome won't change)
@@ -69,7 +69,12 @@ class Forall
 
   class << Config
     def default
-      new(min_tests: 100, max_discards: 50, max_shrinks: 1000, min_retries: 0, stop_early: false)
+      new \
+        min_tests:    100,
+        max_discards: 50,
+        max_shrinks:  1000,
+        min_retries:  0,
+        stop_early:   false
     end
   end
 end

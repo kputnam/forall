@@ -18,49 +18,36 @@ class Forall
         unless Enumerator === children
 
       @value    = value
-      @children = children.by_need
+      @children = children.as_needed
     end
 
-    # Renders the tree in ASCII form.
+    # This is to tag the class as compatible with Enumerable, but we override
+    # many of the definitions from Enumerable that would return an Array to
+    # defer calling `#each` and instead return `Random<_>` in O(1) time and
+    # space.
     #
-    # @return [String]
-    def print(output = "".dup)
-      _print("", "", output)
-    end
+    # Be aware the implementation of `#each` below does not terminate, so many
+    # Enumerable methods will get stuck in an infinite loop. You can limit how
+    # many sample are generated using `#take(n)`, then call Enumerable methods
+    # on the result.
+    #
+    # @group Enumerable
+    ###########################################################################
+    include Enumerable
 
-    # Returns the maximum depth of the tree. The root node is at depth 0.
-    #
-    # @return [Integer]
-    def depth
-      1 + (@children.map(&:depth).max || -1)
-    end
+    def each(&block)
+      if block_given?
+        stack = [self]
 
-    # Remove any nodes past the given depth. If the root (depth 0) is removed,
-    # then `nil` is returned.
-    #
-    # @param  [Integer] depth
-    # @return [Tree<A> | nil]
-    def prune(depth)
-      if depth.negative?
-        nil
-      elsif depth.zero?
-        Tree.leaf(@value)
+        until stack.empty?
+          tree = stack.pop # pop: dfs; shift: bfs
+          stack.push(*tree.children.to_a.reverse)
+
+          block[tree.value]
+        end
       else
-        Tree.new(@value, @children.map{|c| c.prune(depth - 1) })
+        to_enum(:each)
       end
-    end
-
-    # Expand this tree using an unfolding function. The function maps the value
-    # in a node to a set of children, which are then prepended to that node's
-    # existing children.
-    #
-    # @yieldparam  [A]
-    # @yieldreturn [Enumerable<A>]
-    # @return      [Tree<A>]
-    def expand(&block)
-      xs = block[@value].map{|x| Tree.unfold(x, &block) }
-      cs = @children.map{|c| c.expand(&block) }
-      Tree.new(@value, cs + xs)
     end
 
     # Maps each value in this tree using the given function. The shape of the
@@ -73,16 +60,17 @@ class Forall
       Tree.new(block[@value], @children.map{|c| c.map(&block) })
     end
 
-    # bbb
+    # TODO: ...
     #
     # @yieldparam  [A]
     # @yieldreturn [Tree<B>]
     # @return      [Tree<B>]
     def flat_map(&block)
-      block[@value].prepend_children(@children.map{|c| c.flat_map(&block) })
+      tree = block[@value]
+      tree.append_children(@children.map{|c| c.flat_map(&block) })
     end
 
-    # @TODO
+    # TODO: ...
     #
     # @param  [Tree<B>]
     # @return [Tree<[A, B]>]
@@ -153,12 +141,65 @@ class Forall
       end
     end
 
+    # @endgroup Enumerable
+    ###########################################################################
+
+    # Returns the maximum depth of the tree. The root node is at depth 0.
+    #
+    # @return [Integer]
+    def depth
+      1 + (@children.map(&:depth).max || -1)
+    end
+
+    # Remove any nodes past the given depth. If the root (depth 0) is removed,
+    # then `nil` is returned.
+    #
+    # @param  [Integer] depth
+    # @return [Tree<A> | nil]
+    def prune(depth)
+      if depth.negative?
+        nil
+      elsif depth.zero?
+        Tree.leaf(@value)
+      else
+        Tree.new(@value, @children.map{|c| c.prune(depth - 1) })
+      end
+    end
+
+    # Expand this tree using an unfolding function. The function maps the value
+    # in a node to a set of children, which are then prepended to that node's
+    # existing children.
+    #
+    # @yieldparam  [A]
+    # @yieldreturn [Enumerable<A>]
+    # @return      [Tree<A>]
+    def expand(&block)
+      xs = block[@value].map{|x| Tree.unfold(x, &block) }
+      cs = @children.map{|c| c.expand(&block) }
+      Tree.new(@value, cs + xs)
+    end
+
     # Creates a new tree that has the given argument as its first child.
     #
     # @param  [Tree<A>] child
     # @return [Tree<A>]
     def prepend_children(children)
-      Tree.new(@value, children + @children)
+      Tree.new(@value, children.as_needed + @children)
+    end
+
+    # Creates a new tree that has the given argument as its first child.
+    #
+    # @param  [Tree<A>] child
+    # @return [Tree<A>]
+    def append_children(children)
+      Tree.new(@value, @children + children.as_needed)
+    end
+
+    # Renders the tree in ASCII form.
+    #
+    # @return [String]
+    def print(output = "".dup)
+      _print("", "", output)
     end
 
   protected
@@ -206,7 +247,7 @@ class Forall
       Tree.new(value, EMPTY)
     end
 
-    # @TODO: Change _drop_one so the tree is shorter and wider, rather than
+    # TODO: Change _drop_one so the tree is shorter and wider, rather than
     # removing only one item at each level. Maybe use `numeric_tree(size, 0)`
     # to determine the size of the lists. This might even address the problem
     # of having lists show up in multiple places in the tree as shown here:
