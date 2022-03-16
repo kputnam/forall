@@ -34,7 +34,7 @@ jobs:
           bundler-cache: true
 
       - name: rspec ruby-${{ matrix.ruby }} ${{ matrix.os }}
-        run: >-
+        run: |
           bundle install
           bundle exec rake spec
 
@@ -48,7 +48,7 @@ jobs:
           bundler-cache: true
 
       - name: rubocop
-        run: >-
+        run: |
           bundle install
           bundle exec rubocop
 
