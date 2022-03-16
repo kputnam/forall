@@ -16,6 +16,6 @@ Gem::Specification.new do |s|
   # Optional attributes
   s.homepage = "https://github.com/kputnam/forall"
   s.license  = "MIT"
-  s.required_ruby_version     = ">= 2.5.0"
-  s.required_rubygems_version = ">= 2.5.0"
+  s.required_ruby_version     = ">= 2.7.0"
+  s.required_rubygems_version = ">= 2.7.0"
 end
