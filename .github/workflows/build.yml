@@ -68,16 +68,16 @@ jobs:
             echo ::set-output name=version::${GITHUB_REF#refs/tags/}
           elif [[ $GITHUB_REF == refs/heads/master ]]; then
             # Master branch (next step is tag for release)
-            # echo ::set-output name=version::latest
+            echo ::set-output name=version::
           elif [[ $GITHUB_REF == refs/heads/releases/* ]]; then
             # Release candidate branch (next step is merge into master)
-            # echo ::set-output name=version::${GITHUB_REF#refs/heads/releases/}-rc
+            echo ::set-output name=version:: #${GITHUB_REF#refs/heads/releases/}-rc
           elif [[ $GITHUB_REF == refs/heads/development ]]; then
             # Development branch (next step is fork or merge into release candidate branch)
-            # echo ::set-output name=version::edge
+            echo ::set-output name=version:: #edge
           elif [[ $GITHUB_REF == refs/heads/features/* ]]; then
             # Feature branch (next step is to merge into development branch)
-            # echo ::set-output name=version::edge-${GITHUB_REF#refs/heads/features/}
+            echo ::set-output name=version:: #edge-${GITHUB_REF#refs/heads/features/}
           else
             echo "\$GITHUB_REF ($GITHUB_REF) did not match supported patterns"
             exit 1
