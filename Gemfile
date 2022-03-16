@@ -16,5 +16,5 @@ end
 group :test do
   gem "rspec"
   gem "simplecov", require: false
-  gem "simplecov-inline-html"
+  # gem "simplecov-inline-html"
 end
