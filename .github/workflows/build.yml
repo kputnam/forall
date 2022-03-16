@@ -27,7 +27,7 @@ jobs:
           - "2.6"
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@2
+      - uses: actions/checkout@v2
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -38,69 +38,65 @@ jobs:
           bundle install
           bundle exec rake spec
 
-  # audit:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: checkout
-  #       uses: actions/checkout@2
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.4
+          bundler-cache: true
 
-  #     - name: setup ruby
-  #       uses: ruby/setup-ruby@v1
-  #       with:
-  #         ruby-version: 2.4
-  #         bundler-cache: true
+      - name: rubocop
+        run: >-
+          bundle install
+          bundle exec rubocop
 
-  #     - name: rubocop
-  #       run: >-
-  #         bundle install
-  #         bundle exec rubocop
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
-  # publish:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: checkout
-  #       uses: actions/checkout@2
+      - name: configure
+        id: config
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            # Tagged release
+            echo ::set-output name=version::${GITHUB_REF#refs/tags/}
+          elif [[ $GITHUB_REF == refs/heads/master ]]; then
+            # Master branch (next step is tag for release)
+            # echo ::set-output name=version::latest
+          elif [[ $GITHUB_REF == refs/heads/releases/* ]]; then
+            # Release candidate branch (next step is merge into master)
+            # echo ::set-output name=version::${GITHUB_REF#refs/heads/releases/}-rc
+          elif [[ $GITHUB_REF == refs/heads/development ]]; then
+            # Development branch (next step is fork or merge into release candidate branch)
+            # echo ::set-output name=version::edge
+          elif [[ $GITHUB_REF == refs/heads/features/* ]]; then
+            # Feature branch (next step is to merge into development branch)
+            # echo ::set-output name=version::edge-${GITHUB_REF#refs/heads/features/}
+          else
+            echo "\$GITHUB_REF ($GITHUB_REF) did not match supported patterns"
+            exit 1
+          fi
 
-  #     - name: configure
-  #       id: config
-  #       env:
-  #         GITHUB_REPO: ${{ github.repository }}
-  #       run: |
-  #         if [[ $GITHUB_REF == refs/tags/v* ]]; then
-  #           # Tagged release
-  #           echo ::set-output name=version::${GITHUB_REF#refs/tags/}
-  #         elif [[ $GITHUB_REF == refs/heads/master ]]; then
-  #           # Master branch (next step is tag for release)
-  #           # echo ::set-output name=version::latest
-  #         elif [[ $GITHUB_REF == refs/heads/releases/* ]]; then
-  #           # Release candidate branch (next step is merge into master)
-  #           # echo ::set-output name=version::${GITHUB_REF#refs/heads/releases/}-rc
-  #         elif [[ $GITHUB_REF == refs/heads/development ]]; then
-  #           # Development branch (next step is fork or merge into release candidate branch)
-  #           # echo ::set-output name=version::edge
-  #         elif [[ $GITHUB_REF == refs/heads/features/* ]]; then
-  #           # Feature branch (next step is to merge into development branch)
-  #           # echo ::set-output name=version::edge-${GITHUB_REF#refs/heads/features/}
-  #         else
-  #           echo "\$GITHUB_REF ($GITHUB_REF) did not match supported patterns"
-  #           exit 1
-  #         fi
+          echo ::set-output name=date::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          echo ::set-output name=gitsha::${GITHUB_SHA::8}
 
-  #         echo ::set-output name=date::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-  #         echo ::set-output name=gitsha::${GITHUB_SHA::8}
+      - name: show configuration
+        run: |
+          echo date:    ${{ steps.config.outputs.date }}
+          echo gitsha:  ${{ steps.config.outputs.gitsha }}
+          echo version: ${{ steps.config.outputs.version }}
 
-  #     - name: show configuration
-  #       run: |
-  #         echo date:    ${{ steps.config.outputs.date }}
-  #         echo gitsha:  ${{ steps.config.outputs.gitsha }}
-  #         echo version: ${{ steps.config.outputs.version }}
+      - if: ${{ steps.config.version }} != ""
+        name: build gem
+        run: echo
 
-  #     - if: ${{ steps.config.version }} != ""
-  #       name: build gem
-  #       run: echo
-
-  #     - if: ${{ steps.config.version }} != ""
-  #       name: upload gem
-  #       env:
-  #         GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
-  #       run: gem push forall-${{ steps.config.version }}.gem
+      - if: ${{ steps.config.version }} != ""
+        name: upload gem
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: gem push forall-${{ steps.config.version }}.gem
