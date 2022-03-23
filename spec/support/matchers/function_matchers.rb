@@ -20,7 +20,7 @@ module FunctionMatchers
     end
 
     def matches?(target)
-      target = target.to_a if Enumerator === target
+      target = target.to_a if target.is_a?(Enumerator)
       return nil if target.size < 3
 
       @target = target
@@ -54,7 +54,7 @@ module FunctionMatchers
     end
 
     def matches?(target)
-      target  = target.to_a if Enumerator === target
+      target  = target.to_a if target.is_a?(Enumerator)
       @target = target
       return true if target.size < 3
 

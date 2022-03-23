@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
+# :nodoc:
 class Forall
   using Forall::Refinements
 
-  # @private
+  # :nodoc:
   class Tree
     # @return [A]
     attr_reader :value
@@ -15,7 +16,7 @@ class Forall
     # @param [Enumerator<Tree<A>>]  children
     def initialize(value, children)
       raise TypeError, "children must be an Enumerator" \
-        unless Enumerator === children
+        unless children.is_a?(Enumerator)
 
       @value    = value
       @children = children.as_needed
@@ -302,7 +303,7 @@ class Forall
         trees.each_with_index do |_t, k|
           # drop the _t == tree[k]
           xs = trees[0, k]
-          zs = trees[k+1..-1]
+          zs = trees[k+1..]
           e << interleave(xs + zs)
         end
       end
@@ -314,7 +315,7 @@ class Forall
       Enumerator.new do |e|
         trees.each_with_index do |t, k|
           xs = trees[0, k]
-          zs = trees[k+1..-1]
+          zs = trees[k+1..]
 
           # shrink t == trees[k] by replacing it with its children
           t.children.each do |y|

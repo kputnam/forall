@@ -2,12 +2,9 @@
 
 class Forall
 
-  # @TODO
+  # :nodoc:
   class Property < Proc
-
-    # Used internally to abort the search for counterexamples
-    #
-    # @private
+    # :nodoc:
     class Counterexample < StandardError; end
 
     def recheck(prng:, scale:)

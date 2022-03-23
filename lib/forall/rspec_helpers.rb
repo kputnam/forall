@@ -64,26 +64,34 @@ class Forall
 
   # TODO
   module RSpecHelpers::Bounds
-    %w[singleton constant linear exponential].each do |m|
-      class_eval(<<-RUBY, __FILE__, __LINE__ + 1)
-        def #{m}(*args, **kwargs, &block)
-          Forall::Random.#{m}(*args, **kwargs, &block)
-        end
-      RUBY
+    # @example
+    #   bounds(50){|scale| ... }    #=> Forall::Bounds.new(50){|scale| ... }
+    #   bounds.linear(1..10)        #=> Forall::Bounds.linear(1..10)
+    #   bounds                      #=> Forall::Bounds
+    #
+    def bounds(*args, **kwargs, &block)
+      if block_given?
+        Forall::Bounds.new(*args, **kwargs, &block)
+      elsif args.empty? and kwargs.empty?
+        Forall::Bounds
+      else
+        raise ArgumentError, "no block given"
+      end
     end
   end
 
   module RSpecHelpers::Random
-    %w[sequence bernoulli binomial geometric negative_binomial hypergeometric
-    poisson uniform normal exponential gamma beta chi_square student_t
-    boolean integer integer_ float float_ complex range choose weighted
-    permutation subsequence array hash set binit octit digit hexit lowercase
-    uppercase alpha alphanum ascii latin byte utf8 utf8_all].each do |m|
-      class_eval(<<-RUBY, __FILE__, __LINE__ + 1)
-        def #{m}(*args, **kwargs, &block)
-          Forall::Random.#{m}(*args, **kwargs, &block)
-        end
-      RUBY
+    # @example
+    #   random{|prng, scale| ... }  #=> Forall::Random.new{|prng, scale| ... }
+    #   random.integer(1..10)       #=> Forall::Random.integer(1..10)
+    #   random                      #=> Forall::Random
+    #
+    def random(&block)
+      if block_given?
+        Forall::Random.new(&block)
+      else
+        Forall::Random
+      end
     end
   end
 end

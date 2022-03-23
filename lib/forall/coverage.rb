@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# :nodoc:
 class Forall
   using Forall::Refinements
 
@@ -97,8 +98,8 @@ class Forall
           @required.each do |label, minimum|
             np  = @coverage.fetch(label, 0)
             p   = np / n
-            mid = 2*np + zsq
-            off = z * Math.sqrt(zsq - 1/n + 4*np*(1-p) - (4*p-2)) + 1
+            mid = (2*np) + zsq
+            off = (z * Math.sqrt(zsq - (1/n) + (4*np*(1-p)) - ((4*p)-2))) + 1
             low = (mid - off) / (2 * (n + zsq))
 
             result << label if low >= minimum
@@ -150,8 +151,8 @@ class Forall
           @required.each do |label, minimum|
             np  = @coverage.fetch(label, 0)
             p   = np / n
-            mid = 2*np + zsq
-            off = z * Math.sqrt(zsq - 1/n + 4*np*(1-p) - (4*p-2)) + 1
+            mid = (2*np) + zsq
+            off = (z * Math.sqrt(zsq - (1/n) + (4*np*(1-p)) - ((4*p)-2))) + 1
             hi  = (mid + off) / (2 * (n + zsq))
 
             result << label if hi < minimum
@@ -159,22 +160,6 @@ class Forall
         end
       end
     end
-
-    # Not used, only for double-checking math in `satisfied` and `unsatisfied`
-    # def confidence_interval(np, n, significance_level)
-    #   z   = _probit(1 - (significance_level/2))
-    #   zsq = z * z
-    #   np  = np.to_f
-    #   n   = n.to_f
-    #   p   = np / n
-    #   mid = 2*np + zsq
-    #   off = z * Math.sqrt(zsq - 1/n + 4*np*(1-p) - (4*p-2)) + 1
-
-    #   lo  = (mid - off) / (2 * (n + zsq))
-    #   hi  = (mid + off) / (2 * (n + zsq))
-
-    #   lo .. hi
-    # end
 
   private
 

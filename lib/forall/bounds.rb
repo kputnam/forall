@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# :nodoc:
 class Forall
   using Forall::Refinements
 
@@ -23,7 +24,7 @@ class Forall
       raise TypeError, "block must return a Range"              unless bounds[0].is_a?(Range)
 
       @origin  = origin
-      @bounds  = bounds
+      @bounds  = bounds || singlton_class::ID
       @convert = convert
 
       name ||= caller[1][/(?<=`)[^']+/]
@@ -33,7 +34,7 @@ class Forall
     # @return [String]
     def inspect
       if @name =~ /^constant/
-        @name[/(?<=\()[^\)]+/]
+        @name[/(?<=\()[^)]+/]
       else
         "#{self.class.name[/(?<=::).+$/]}.#{@name}"
       end
@@ -185,19 +186,19 @@ class Forall
            and (range.end.nil?   or range.end.instance_of?(hint.class)) \
            and (origin.nil?      or origin.instance_of?(hint.class))
 
-      if Numeric === hint
+      if hint.is_a?(Numeric)
         [range, origin, ID]
-      elsif defined?(Date) and Date === hint
+      elsif defined?(Date) and hint.is_a?(Date)
         lo     = range.begin&.jd
         hi     = range.end&.jd
         origin = origin&.jd
         [lo..hi, origin, JD]
-      elsif defined?(Time) and Time === hint
+      elsif defined?(Time) and hint.is_a?(Time)
         lo     = range.begin&.to_f
         hi     = range.end&.to_f
         origin = origin&.to_f
         [lo..hi, origin, lambda{|x| Time.at(x, in: (lo || hi || origin)&.tz) }]
-      elsif String === hint
+      elsif hint.is_a?(String)
         # @TODO: This only works for single-character strings
         unless (lo.nil?     or lo.length     == 1) \
            and (hi.nil?     or hi.lengh      == 1) \
@@ -207,7 +208,7 @@ class Forall
 
         enc = (lo || hi || origin).encoding
         [lo&.ord..hi&.ord, origin&.ord, lambda{|x| x.chr(enc) }]
-      elsif Range === hint
+      elsif hint.is_a?(Range)
         # @TODO: This should be possible somehow. The size parameter would
         # control the width of the Range and how far its bounds are from the
         # bounds of the origin Range

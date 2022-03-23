@@ -8,7 +8,7 @@ SimpleCov.start do
 end
 
 require "forall"
-Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each(&method(:require))
+Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].sort.each(&method(:require))
 
 RSpec.configure do |config|
   config.include(FunctionMatchers)

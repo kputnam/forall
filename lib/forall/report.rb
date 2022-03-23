@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "term/ansicolor"
 
 class Forall
@@ -28,7 +29,7 @@ class Forall
 
     def initialize(**attributes)
       attributes.each do |k, v|
-        raise NoMethodError, "undefined method `#{k}' for #{self.inspect}"\
+        raise NoMethodError, "undefined method `#{k}' for #{inspect}"\
           unless respond_to?(k)
 
         instance_variable_set("@#{k}", v)

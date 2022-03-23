@@ -4,12 +4,13 @@ describe Forall::Bounds do
   using Forall::Refinements
   include Forall::RSpecHelpers
   include Forall::RSpecHelpers::Bounds
+  include Forall::RSpecHelpers::Random
 
   before do
-    @size  = Forall::Random.integer(0..99)
+    @size  = random.integer(0..99)
     @range =
-      Forall::Random.integer(0..500).flat_map do |a|
-        Forall::Random.integer(0..500).map do |b|
+      random.integer(0..500).flat_map do |a|
+        random.integer(0..500).map do |b|
           if a < b
             a..b
           else
@@ -23,40 +24,40 @@ describe Forall::Bounds do
 
   describe ".singleton" do
     before do
-      @value     = Forall::Random.integer(0..500)
-      @singleton = @value.map{|x| Forall::Bounds.singleton(x) }
+      @value     = random.integer(0..500)
+      @singleton = @value.map{|x| bounds.singleton(x) }
     end
 
     it "bounds do not depend on size" do
-      forall(Forall::Random.sequence(@singleton, @size)) do |singleton, size|
+      forall(random.sequence(@singleton, @size)) do |singleton, size|
         expect(singleton.range(size)).to eq(singleton.range(0))
       end
     end
 
     it "lower and upper bounds are equal" do
-      forall(Forall::Random.sequence(@value, @size)) do |value, size|
-        expect(Forall::Bounds.singleton(value).range(size)).to eq(value..value)
+      forall(random.sequence(@value, @size)) do |value, size|
+        expect(bounds.singleton(value).range(size)).to eq(value..value)
       end
     end
   end
 
   describe ".constant" do
     it "bounds do not depend on size" do
-      forall(Forall::Random.sequence(@range, @size)) do |range, size|
-        expect(Forall::Bounds.constant(range).range(size)).to eq(range)
+      forall(random.sequence(@range, @size)) do |range, size|
+        expect(bounds.constant(range).range(size)).to eq(range)
       end
     end
   end
 
   describe ".linear" do
     before do
-      @origin = Forall::Random.float(0..1)
+      @origin = random.float(0..1)
     end
 
     it "bounds grow linearly with size" do
-      forall(Forall::Random.sequence(@range_to_f.filter{|r| r.begin != r.end }, @origin)) do |range, scale|
+      forall(random.sequence(@range_to_f.filter{|r| r.begin != r.end }, @origin)) do |range, scale|
         origin = range.begin + (scale * (range.end - range.begin))
-        linear = Forall::Bounds.linear(range, origin: origin)
+        linear = bounds.linear(range, origin: origin)
 
         expect(100.times.map{|size| linear.begin(size) }).to be_linear(0.99)
         expect(100.times.map{|size| linear.end(size)   }).to be_linear(0.99)
@@ -66,13 +67,13 @@ describe Forall::Bounds do
 
   describe ".exponential" do
     before do
-      @origin = Forall::Random.float(0..1)
+      @origin = random.float(0..1)
     end
 
     pending "bounds grow exponentially with size" do
-      forall(Forall::Random.sequence(@range_to_f.filter{|r| r.begin != r.end }, @origin)) do |range, scale|
+      forall(random.sequence(@range_to_f.filter{|r| r.begin != r.end }, @origin)) do |range, scale|
         origin      = range.begin + (scale * (range.end - range.begin))
-        exponential = Forall::Bounds.exponential(range, origin: origin)
+        exponential = bounds.exponential(range, origin: origin)
 
         expect(100.times.map{|size| exponential.begin(size) }).to be_exponential(0.9)
         expect(100.times.map{|size| exponential.end(size)   }).to be_exponential(0.9)
@@ -82,18 +83,18 @@ describe Forall::Bounds do
 
   describe "#begin" do
     it "returns bounds(size).begin" do
-      forall(Forall::Random.sequence(@range, @size)) do |range, size|
-        bounds = Forall::Bounds.linear(range)
-        expect(bounds.begin(size)).to eq(bounds.range(size).begin)
+      forall(random.sequence(@range, @size)) do |range, size|
+        bounds_ = bounds.linear(range)
+        expect(bounds_.begin(size)).to eq(bounds_.range(size).begin)
       end
     end
   end
 
   describe "#end" do
     it "returns bounds(size).end" do
-      forall(Forall::Random.sequence(@range, @size)) do |range, size|
-        bounds = Forall::Bounds.linear(range)
-        expect(bounds.end(size)).to eq(bounds.range(size).end)
+      forall(random.sequence(@range, @size)) do |range, size|
+        bounds_ = bounds.linear(range)
+        expect(bounds_.end(size)).to eq(bounds_.range(size).end)
       end
     end
   end

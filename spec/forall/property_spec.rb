@@ -2,10 +2,11 @@
 
 describe Forall::Property do
   using Forall::Refinements
+  include Forall::RSpecHelpers::Bounds
+  include Forall::RSpecHelpers::Random
 
   describe "#forall" do
     before do
-
       zero = Forall::Tree.leaf(0) # minimal counterexample
       one  = Forall::Tree.leaf(1) # not a counterexample
       two  = Forall::Tree.leaf(2) # counterexample
@@ -18,16 +19,16 @@ describe Forall::Property do
     it "increments scale parameter after each test" do
       values = []
 
-      Forall::Property.new{|n, _| values << n }
-        .forall(Forall::Random.scale)
+      # This executes the property, the result is discarded here
+      Forall::Property.new{|n, _| values << n }.forall(random.scale)
 
       expect(values).to eq([*0..99].cycle.take(@config.min_tests))
     end
 
     context "when no counterexample is found" do
       before do
-        @result = Forall::Property.new{|_, _| true }
-                    .forall(@input, config: @config)
+        property = Forall::Property.new{|_, _| true }
+        @result  = property.forall(@input, config: @config)
       end
 
       it "reports success" do

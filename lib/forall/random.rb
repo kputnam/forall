@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
+# :nodoc:
 class Forall
   using Forall::Refinements
 
+  # :nodoc:
   class Random < Proc
-
     def initialize(name = nil)
       name ||= caller[1][/(?<=`)[^']+/]
       @name  = name
@@ -321,11 +322,10 @@ class Forall
           v = x*x*x
           u = _uniform_01_positive(prng)
 
-          if u <= 1 - (0.331 * _square(x*x)) or Math.log(u) < (0.5 * _square(x)) + (α1 * (1 - v + Math.log(v)))
-            break if α >= 1
+          next unless u <= 1 - (0.331 * _square(x*x)) or Math.log(u) < (0.5 * _square(x)) + (α1 * (1 - v + Math.log(v)))
+          break if α >= 1
 
-            α1 *= y ** (1/α)
-          end
+          α1 *= y ** (1/α)
         end
 
         α1 * v * β

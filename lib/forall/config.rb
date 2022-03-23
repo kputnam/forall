@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
+# :nodoc:
 class Forall
   using Forall::Refinements
 
-  #
+  # :nodoc:
   class Config
     # Check the property this many times, unless `stop_early?` is enabled, in
     # which case fewer tests may be run (the outcome won't change)

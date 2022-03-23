@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
+# :nodoc:
 class Forall
-
   # This class provides Forall::Property a way to interact with the test runner
   # as its testing the property.
   #

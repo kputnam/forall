@@ -76,7 +76,7 @@ describe Forall::Random do
 
     it "passes prng and scale parameters to block" do
       subject = random{|prng, scale| [prng, scale] }
-      expect(subject.sample(prng: :a, scale: :b)).to eq([:a, :b])
+      expect(subject.sample(prng: :a, scale: :b)).to eq(%i[a b])
     end
 
     it "generates a single sample" do
@@ -139,19 +139,19 @@ describe Forall::Random do
       t1 = random.prng
       t2 = random.prng
       t3 = t1.flat_map{|t1_| t2.map{|t2_| [t1_, t2_] }}
-      expect(t3.sample(prng: :prng).value).to eq([:prng, :prng])
+      expect(t3.sample(prng: :prng).value).to eq(%i[prng prng])
     end
 
     it "shares the scale with inner level" do
       t1 = random.scale
       t2 = random.scale
       t3 = t1.flat_map{|t1_| t2.map{|t2_| [t1_, t2_] }}
-      expect(t3.sample(scale: :scale).value).to eq([:scale, :scale])
+      expect(t3.sample(scale: :scale).value).to eq(%i[scale scale])
     end
 
     it "requires block to return correct type" do
       t1 = random.boolean
-      t2 = t1.flat_map{|x| 0 }
+      t2 = t1.flat_map{|_| 0 }
       expect{ t2.sample }.to raise_error(TypeError)
     end
 
@@ -164,7 +164,7 @@ describe Forall::Random do
       #     \
       #       ijk
       #
-      t0 = tree("abc", ["mno", ["tuv", "xyz"], ["qrs"], ["ijk"]])
+      t0 = tree("abc", ["mno", %w[tuv xyz], %w[qrs], %w[ijk]])
       t1 = random{|_, _| t0 }
 
       # abc => a
@@ -188,13 +188,13 @@ describe Forall::Random do
       # │  └─ "xyz"
       # ├─ "qrs"
       # └─ "ijk"
-      t0 = tree("abc", ["mno", "tuv", "xyz"], ["qrs"], ["ijk"])
+      t0 = tree("abc", %w[mno tuv xyz], %w[qrs], %w[ijk])
       t1 = random{|_, _| t0 }
 
       #          "aa"
       # "abc" => ├─ "b"
       #          └─ "c"
-      t2 = t1.flat_map{|str| random{|_, _| tree(str.chars[0]*2, *str.chars[1..-1]) }}
+      t2 = t1.flat_map{|str| random{|_, _| tree(str.chars[0]*2, *str.chars[1..]) }}
 
       # "aa"
       # ├─ "b"
