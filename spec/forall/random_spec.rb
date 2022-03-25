@@ -16,19 +16,6 @@ describe Forall::Random do
     Forall::Tree.new(root, kids.map{|k| tree(*k) }.each)
   end
 
-  # @example
-  #   random{|prng, scale| ... }  #=> Forall::Random.new{|prng, scale| ... }
-  #   random.integer(1..10)       #=> Forall::Random.integer(1..10)
-  #   random                      #=> Forall::Random
-  #
-  def random(&block)
-    if block_given?
-      Forall::Random.new(&block)
-    else
-      Forall::Random
-    end
-  end
-
   describe ".new(&block)" do
     it "delays evaluation" do
       expect{ random{|_, _| raise "not delayed" } }.to_not raise_error
@@ -44,6 +31,11 @@ describe Forall::Random do
       expect(@random.each).to be_a(Enumerator)
     end
 
+    it "delays evaluation" do
+      x = random{|_, _| raise "forced" }
+      expect{ x.each }.to_not raise_error("forced")
+    end
+
     it "uses a default prng" do
       expect(@random.each.first.value).to be_a(::Random)
     end
@@ -55,8 +47,8 @@ describe Forall::Random do
 
   describe "#each(&block)" do
     it "forces evaluation" do
-      subject = random{|_, _| raise "forced" }
-      expect{ subject.each{|_| } }.to raise_error("forced")
+      x = random{|_, _| raise "forced" }
+      expect{ x.each{|_| } }.to raise_error("forced")
     end
 
     it "increments the scale parameter at each iteration" do
@@ -68,22 +60,23 @@ describe Forall::Random do
 
   describe "#sample(prng, scale)" do
     it "provides a default scale and prng" do
-      subject = random{|prng, scale| [prng, scale] }
-      prng  = an_instance_of(::Random)
-      scale = an_instance_of(Integer)
-      expect(subject.sample).to match([prng, scale])
+      x = random{|prng, scale| [prng, scale] }
+
+      prng_  = an_instance_of(::Random)
+      scale_ = an_instance_of(Integer)
+      expect(x.sample).to match([prng, scale])
     end
 
     it "passes prng and scale parameters to block" do
-      subject = random{|prng, scale| [prng, scale] }
-      expect(subject.sample(prng: :a, scale: :b)).to eq(%i[a b])
+      x = random{|prng, scale| [prng, scale] }
+      expect(x.sample(prng: :a, scale: :b)).to eq(%i[a b])
     end
 
     it "generates a single sample" do
-      state   = 0
-      subject = random{|_, _| state += 1 }
-      expect(subject.sample).to eq(1)
-      expect(subject.sample).to eq(2)
+      state = 0
+      x     = random{|_, _| state += 1 }
+      expect(x.sample).to eq(1)
+      expect(x.sample).to eq(2)
     end
   end
 
