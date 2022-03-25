@@ -1,6 +1,7 @@
-# Forall
+# Forall [![Build Status](https://github.com/kputnam/forall/actions/workflows/build.yml/badge.svg)](https://github.com/kputnam/forall/actions/workflows/build.yml).
 
-Property-based testing for Ruby (adapted from Jacob Stanley's [Hedgehog](https://github.com/hedgehogqa/haskell-hedgehog) library for Haskell, and an older project I made named [Propr](https://github.com/kputnam/propr)). [![Build Status](https://github.com/kputnam/forall/actions/workflows/build.yml/badge.svg)](https://github.com/kputnam/forall/actions/workflows/build.yml).
+
+Property-based testing for Ruby (adapted from Jacob Stanley's [Hedgehog](https://github.com/hedgehogqa/haskell-hedgehog) library for Haskell, and an older project I made named [Propr](https://github.com/kputnam/propr)).
 
 ## Introduction
 
